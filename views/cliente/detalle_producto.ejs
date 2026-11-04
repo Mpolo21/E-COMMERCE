@@ -1,0 +1,38 @@
+<%- include('../partials/header') %>
+
+<div class="detalle-container">
+  <div class="detalle-card">
+    <span class="badge-marca"><%= producto.nombre_marca %></span>
+    <h2><%= producto.nombre_producto %></h2>
+    <p class="categoria-temp"><strong>Categoría:</strong> <%= producto.nombre_categoria %> | <strong>Temporada:</strong> <%= producto.nombre_temporada %></p>
+    <p class="descripcion-larga"><%= producto.descripcion %></p>
+    <p class="precio-grande">$ <%= Number(producto.precio).toLocaleString('es-CO') %> COP</p>
+
+    <% if (producto.inventario.length === 0) { %>
+      <div class="alert alert-danger">Producto agotado temporalmente en todas las tallas y colores.</div>
+    <% } else { %>
+      <form action="/carrito/agregar" method="POST">
+        <input type="hidden" name="id_producto" value="<%= producto.id_producto %>">
+        <div class="form-group">
+          <label for="id_inventario">Selecciona Talla y Color disponibles:</label>
+          <select name="id_inventario" id="id_inventario" required>
+            <% producto.inventario.forEach(inv => { %>
+              <option value="<%= inv.id_inventario %>">
+                Talla: <%= inv.nombre_talla %> — Color: <%= inv.nombre_color %> (Disponibles: <%= inv.cantidad_stock %>)
+              </option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="cantidad">Cantidad:</label>
+          <input type="number" name="cantidad" id="cantidad" value="1" min="1" max="50" required>
+        </div>
+        <button type="submit" class="btn-primary">Agregar al Carrito</button>
+      </form>
+    <% } %>
+    <br>
+    <a href="/catalogo" class="btn-secondary-link">← Volver al catálogo</a>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

@@ -1,0 +1,59 @@
+
+.catalogo-wrapper { display: flex; gap: 30px; align-items: flex-start; flex-wrap: wrap; }
+.filtros-sidebar { flex: 1; min-width: 250px; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+.productos-grid-container { flex: 3; min-width: 300px; }
+.productos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; margin-top: 20px; }
+.producto-card { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: space-between; }
+.producto-header-badge { display: flex; justify-content: space-between; font-size: 0.75rem; color: #64748b; margin-bottom: 8px; }
+.badge-marca { background: #e2e8f0; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
+.badge-temporada { color: #2563eb; }
+.producto-card h3 { font-size: 1.1rem; margin: 5px 0; color: #1e293b; }
+.producto-cat { font-size: 0.85rem; color: #64748b; margin-bottom: 10px; }
+.precio { font-size: 1.2rem; font-weight: bold; color: #16a34a; margin: 10px 0; }
+.stock-info { font-size: 0.85rem; color: #475569; margin-bottom: 15px; }
+.btn-secondary-link { display: inline-block; margin-top: 10px; color: #2563eb; text-decoration: none; font-size: 0.9rem; text-align: center; width: 100%; }
+.btn-secondary-link:hover { text-decoration: underline; }
+.detalle-container { display: flex; justify-content: center; }
+.detalle-card { background: #fff; padding: 30px; border-radius: 8px; width: 100%; max-width: 600px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+.precio-grande { font-size: 1.8rem; font-weight: bold; color: #16a34a; margin: 15px 0; }
+.descripcion-larga { color: #475569; line-height: 1.5; margin-bottom: 20px; }
+.catalogo-wrapper { display: flex; gap: 30px; align-items: flex-start; flex-wrap: wrap; }
+.filtros-sidebar { flex: 1; min-width: 250px; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+.productos-grid-container { flex: 3; min-width: 300px; }
+.productos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; margin-top: 20px; }
+.producto-card { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: space-between; }
+.producto-header-badge { display: flex; justify-content: space-between; font-size: 0.75rem; color: #64748b; margin-bottom: 8px; }
+.badge-marca { background: #e2e8f0; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
+.badge-temporada { color: #2563eb; }
+.producto-card h3 { font-size: 1.1rem; margin: 5px 0; color: #1e293b; }
+.producto-cat { font-size: 0.85rem; color: #64748b; margin-bottom: 10px; }
+.precio { font-size: 1.2rem; font-weight: bold; color: #16a34a; margin: 10px 0; }
+.stock-info { font-size: 0.85rem; color: #475569; margin-bottom: 15px; }
+.btn-secondary-link { display: inline-block; margin-top: 10px; color: #2563eb; text-decoration: none; font-size: 0.9rem; text-align: center; width: 100%; }
+.btn-secondary-link:hover { text-decoration: underline; }
+.detalle-container { display: flex; justify-content: center; }
+.detalle-card { background: #fff; padding: 30px; border-radius: 8px; width: 100%; max-width: 600px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+.precio-grande { font-size: 1.8rem; font-weight: bold; color: #16a34a; margin: 15px 0; }
+.descripcion-larga { color: #475569; line-height: 1.5; margin-bottom: 20px; }
+body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f6f9; color: #333; display: flex; flex-direction: column; min-height: 100vh; }
+.container { width: 90%; max-width: 1200px; margin: 0 auto; }
+.main-header { background-color: #1e293b; color: #fff; padding: 1rem 0; }
+.nav-container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+.main-header h1 a { color: #fff; text-decoration: none; font-size: 1.25rem; }
+.main-header nav { display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }
+.main-header nav a { color: #cbd5e1; text-decoration: none; }
+.main-header nav a:hover { color: #fff; }
+.btn-logout { background-color: #ef4444; padding: 5px 10px; border-radius: 4px; color: #fff !important; }
+.main-content { flex: 1; padding: 30px 0; }
+.main-footer { background-color: #1e293b; color: #94a3b8; text-align: center; padding: 15px 0; margin-top: auto; }
+.alert { padding: 12px; margin-bottom: 20px; border-radius: 4px; }
+.alert-success { background-color: #d1fae5; color: #065f46; border: 1px solid #a3e635; }
+.alert-danger { background-color: #fee2e2; color: #991b1b; border: 1px solid #f87171; }
+.auth-card, .error-container { max-width: 450px; margin: 40px auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+.form-group { margin-bottom: 15px; }
+.form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+.form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 4px; box-sizing: border-box; }
+.btn-primary { background-color: #2563eb; color: #fff; border: none; padding: 10px 15px; width: 100%; border-radius: 4px; cursor: pointer; font-size: 1rem; }
+.btn-primary:hover { background-color: #1d4ed8; }
+.auth-link { text-align: center; margin-top: 15px; }
+.demo-info { font-size: 0.85rem; color: #64748b; background: #f1f5f9; padding: 10px; border-radius: 4px; margin-top: 15px; }

@@ -1,0 +1,21 @@
+{
+  "name": "ecommerce-ropa-pijic",
+  "version": "1.0.0",
+  "description": "Sistema web de e-commerce de ropa masculina - Diseño de Software (Politécnico Jaime Isaza Cadavid - Sede Apartadó)",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "node --watch app.js"
+  },
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "dotenv": "^16.4.5",
+    "ejs": "^3.1.10",
+    "express": "^4.19.2",
+    "express-session": "^1.18.0",
+    "mysql2": "^3.9.7"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

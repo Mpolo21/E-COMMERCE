@@ -1,0 +1,21 @@
+<%- include('../partials/header') %>
+<div class="auth-card">
+  <h2>Iniciar Sesión</h2>
+  <% if (typeof error !== 'undefined') { %>
+    <div class="alert alert-danger"><%= error %></div>
+  <% } %>
+  <form action="/auth/login" method="POST">
+    <div class="form-group">
+      <label for="correo">Correo Electrónico:</label>
+      <input type="email" id="correo" name="correo" required value="cliente@pijic.edu.co">
+    </div>
+    <div class="form-group">
+      <label for="contrasena">Contraseña:</label>
+      <input type="password" id="contrasena" name="contrasena" required value="password">
+    </div>
+    <button type="submit" class="btn-primary">Entrar</button>
+  </form>
+  <p class="auth-link">¿No tienes cuenta? <a href="/auth/register">Regístrate aquí</a></p>
+  <p class="demo-info"><em>Credenciales de prueba:<br>• Admin: admin@pijic.edu.co / password<br>• Cliente: cliente@pijic.edu.co / password<br>• Proveedor: proveedor@textilesuraba.com / password</em></p>
+</div>
+<%- include('../partials/footer') %>

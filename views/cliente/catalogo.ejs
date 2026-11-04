@@ -1,0 +1,80 @@
+<%- include('../partials/header') %>
+
+<div class="catalogo-wrapper">
+  <!-- Barra Lateral de Filtros -->
+  <aside class="filtros-sidebar">
+    <h3>Filtrar Catálogo</h3>
+    <form action="/catalogo" method="GET">
+      <div class="form-group">
+        <label for="categoria">Categoría:</label>
+        <select name="categoria" id="categoria">
+          <option value="">Todas las categorías</option>
+          <% filtrosDisponibles.categorias.forEach(cat => { %>
+            <option value="<%= cat.id_categoria %>" <%= filtrosActivos.categoria == cat.id_categoria ? 'selected' : '' %>><%= cat.nombre_categoria %></option>
+          <% }) %>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="marca">Marca:</label>
+        <select name="marca" id="marca">
+          <option value="">Todas las marcas</option>
+          <% filtrosDisponibles.marcas.forEach(mar => { %>
+            <option value="<%= mar.id_marca %>" <%= filtrosActivos.marca == mar.id_marca ? 'selected' : '' %>><%= mar.nombre_marca %></option>
+          <% }) %>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="talla">Talla:</label>
+        <select name="talla" id="talla">
+          <option value="">Todas las tallas</option>
+          <% filtrosDisponibles.tallas.forEach(tal => { %>
+            <option value="<%= tal.id_talla %>" <%= filtrosActivos.talla == tal.id_talla ? 'selected' : '' %>><%= tal.nombre_talla %></option>
+          <% }) %>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="color">Color:</label>
+        <select name="color" id="color">
+          <option value="">Todos los colores</option>
+          <% filtrosDisponibles.colores.forEach(col => { %>
+            <option value="<%= col.id_color %>" <%= filtrosActivos.color == col.id_color ? 'selected' : '' %>><%= col.nombre_color %></option>
+          <% }) %>
+        </select>
+      </div>
+
+      <button type="submit" class="btn-primary">Aplicar Filtros</button>
+      <a href="/catalogo" class="btn-secondary-link">Limpiar Filtros</a>
+    </form>
+  </aside>
+
+  <!-- Grilla de Productos -->
+  <section class="productos-grid-container">
+    <h2>Catálogo de Ropa Masculina</h2>
+    <% if (productos.length === 0) { %>
+      <div class="alert alert-danger" style="margin-top: 20px;">
+        No se encontraron prendas que coincidan con los filtros seleccionados. Intenta con otros criterios de búsqueda.
+      </div>
+    <% } else { %>
+      <div class="productos-grid">
+        <% productos.forEach(prod => { %>
+          <div class="producto-card">
+            <div class="producto-header-badge">
+              <span class="badge-marca"><%= prod.nombre_marca %></span>
+              <span class="badge-temporada"><%= prod.nombre_temporada %></span>
+            </div>
+            <h3><%= prod.nombre_producto %></h3>
+            <p class="producto-cat"><%= prod.nombre_categoria %></p>
+            <p class="precio">$ <%= Number(prod.precio).toLocaleString('es-CO') %> COP</p>
+            <p class="stock-info">Stock total: <strong><%= prod.stock_total %> unids.</strong></p>
+            <a href="/catalogo/producto/<%= prod.id_producto %>" class="btn-primary" style="text-align: center; text-decoration: none; display: block;">Ver Detalle / Comprar</a>
+          </div>
+        <% }) %>
+      </div>
+    <% } %>
+  </section>
+</div>
+
+<%- include('../partials/footer') %>
