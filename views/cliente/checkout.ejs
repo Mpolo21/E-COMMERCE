@@ -1,0 +1,33 @@
+<%- include('../partials/header') %>
+
+<div class="container" style="max-width: 700px; margin-top: 30px;">
+  <div class="auth-card" style="max-width: 100%;">
+    <h2>Finalizar Compra (Checkout)</h2>
+    <form action="/carrito/checkout" method="POST" style="margin-top: 20px;">
+      <div class="form-group">
+        <label for="direccion_entrega">Dirección de Entrega:</label>
+        <input type="text" id="direccion_entrega" name="direccion_entrega" required value="<%= usuarioActual.direccion || '' %>" placeholder="Ej: Carrera 103 # 98-15 Apartadó">
+      </div>
+
+      <div class="form-group">
+        <label for="id_metodo_pago">Método de Pago:</label>
+        <select name="id_metodo_pago" id="id_metodo_pago" required>
+          <% metodosPago.forEach(metodo => { %>
+            <option value="<%= metodo.id_metodo %>"><%= metodo.nombre_metodo %></option>
+          <% }) %>
+        </select>
+      </div>
+
+      <div style="background: #f8fafc; padding: 15px; border-radius: 6px; margin: 20px 0;">
+        <h4>Resumen del Pedido</h4>
+        <p>Total de artículos: <strong><%= carrito.reduce((a, b) => a + b.cantidad, 0) %> unids.</strong></p>
+        <p style="font-size: 1.2rem; font-weight: bold; color: #16a34a;">Total a Pagar: $ <%= total.toLocaleString('es-CO') %> COP</p>
+        <p style="font-size: 0.85rem; color: #64748b; margin-top: 5px;">* Acumularás puntos de fidelización con esta compra.</p>
+      </div>
+
+      <button type="submit" class="btn-primary">Confirmar y Pagar Pedido</button>
+    </form>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

@@ -1,0 +1,60 @@
+<%- include('../partials/header') %>
+
+<div class="container" style="max-width: 900px; margin-top: 30px;">
+  <h2>Tu Carrito de Compras</h2>
+  <% if (carrito.length === 0) { %>
+    <div class="alert alert-danger" style="margin-top: 20px;">
+      Tu carrito está vacío. <a href="/catalogo">Explora el catálogo</a>
+    </div>
+  <% } else { %>
+    <table class="table-carrito" style="width: 100%; border-collapse: collapse; margin-top: 20px; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+      <thead>
+        <tr style="background: #1e293b; color: #fff; text-align: left;">
+          <th style="padding: 12px;">Producto</th>
+          <th style="padding: 12px;">Talla / Color</th>
+          <th style="padding: 12px;">Precio Unitario</th>
+          <th style="padding: 12px;">Cantidad</th>
+          <th style="padding: 12px;">Subtotal</th>
+          <th style="padding: 12px;">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% carrito.forEach(item => { %>
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 12px;"><strong><%= item.nombre_producto %></strong></td>
+            <td style="padding: 12px;">Talla: <%= item.nombre_talla %> / Color: <%= item.nombre_color %></td>
+            <td style="padding: 12px;">$ <%= item.precio.toLocaleString('es-CO') %></td>
+            <td style="padding: 12px;">
+              <form action="/carrito/modificar" method="POST" style="display:inline;">
+                <input type="hidden" name="id_inventario" value="<%= item.id_inventario %>">
+                <button type="submit" name="accion" value="disminuir" class="btn-sm">-</button>
+              </form>
+              <span style="margin: 0 10px; font-weight: bold;"><%= item.cantidad %></span>
+              <form action="/carrito/modificar" method="POST" style="display:inline;">
+                <input type="hidden" name="id_inventario" value="<%= item.id_inventario %>">
+                <button type="submit" name="accion" value="aumentar" class="btn-sm">+</button>
+              </form>
+            </td>
+            <td style="padding: 12px; font-weight: bold; color: #16a34a;">$ <%= (item.precio * item.cantidad).toLocaleString('es-CO') %></td>
+            <td style="padding: 12px;">
+              <form action="/carrito/modificar" method="POST">
+                <input type="hidden" name="id_inventario" value="<%= item.id_inventario %>">
+                <button type="submit" name="accion" value="eliminar" class="btn-danger-sm">Eliminar</button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+
+    <div style="margin-top: 25px; background: #fff; padding: 20px; border-radius: 8px; text-align: right; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+      <h3>Total a Pagar: <span style="color: #16a34a;">$ <%= total.toLocaleString('es-CO') %> COP</span></h3>
+      <div style="margin-top: 15px;">
+        <a href="/catalogo" class="btn-secondary-link" style="margin-right: 15px; display:inline-block; width: auto;">Seguir Comprando</a>
+        <a href="/carrito/checkout" class="btn-primary" style="display:inline-block; width: auto; text-decoration: none;">Proceder al Checkout →</a>
+      </div>
+    </div>
+  <% } %>
+</div>
+
+<%- include('../partials/footer') %>

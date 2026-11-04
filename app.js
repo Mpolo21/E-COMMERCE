@@ -52,7 +52,8 @@ app.use((req, res, next) => {
 // 6. Enrutadores de la aplicación
 const authRoutes = require('./routes/auth');
 const catalogoRoutes = require('./routes/catalogo');
-
+const carritoRoutes = require('./routes/carrito');
+app.use('/carrito', carritoRoutes);
 app.use('/auth', authRoutes);
 app.use('/catalogo', catalogoRoutes);
 

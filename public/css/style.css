@@ -57,3 +57,7 @@ body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: 
 .btn-primary:hover { background-color: #1d4ed8; }
 .auth-link { text-align: center; margin-top: 15px; }
 .demo-info { font-size: 0.85rem; color: #64748b; background: #f1f5f9; padding: 10px; border-radius: 4px; margin-top: 15px; }
+.btn-sm { padding: 4px 8px; background: #e2e8f0; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+.btn-sm:hover { background: #cbd5e1; }
+.btn-danger-sm { padding: 4px 8px; background: #fee2e2; color: #991b1b; border: none; border-radius: 4px; cursor: pointer; }
+.btn-danger-sm:hover { background: #fecaca; }
