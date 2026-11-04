@@ -61,3 +61,7 @@ body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: 
 .btn-sm:hover { background: #cbd5e1; }
 .btn-danger-sm { padding: 4px 8px; background: #fee2e2; color: #991b1b; border: none; border-radius: 4px; cursor: pointer; }
 .btn-danger-sm:hover { background: #fecaca; }
+.badge-estado { padding: 4px 8px; border-radius: 4px; font-size: 0.85rem; font-weight: bold; display: inline-block; }
+.badge-estado.pagado { background: #d1fae5; color: #065f46; }
+.badge-estado.pendiente { background: #fef3c7; color: #92400e; }
+.badge-estado.cancelado { background: #fee2e2; color: #991b1b; }

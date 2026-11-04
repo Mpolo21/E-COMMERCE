@@ -53,6 +53,8 @@ app.use((req, res, next) => {
 const authRoutes = require('./routes/auth');
 const catalogoRoutes = require('./routes/catalogo');
 const carritoRoutes = require('./routes/carrito');
+const cuentaRoutes = require('./routes/cuenta');
+app.use('/cuenta', cuentaRoutes);
 app.use('/carrito', carritoRoutes);
 app.use('/auth', authRoutes);
 app.use('/catalogo', catalogoRoutes);

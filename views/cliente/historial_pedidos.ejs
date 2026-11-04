@@ -1,0 +1,62 @@
+<%- include('../partials/header') %>
+
+<div class="container" style="max-width: 1000px; margin-top: 30px;">
+  <!-- Tarjeta de Perfil y Puntos -->
+  <div style="background: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 25px;">
+    <div>
+      <h2>Mi Cuenta</h2>
+      <p><strong>Nombre:</strong> <%= cliente.nombre %></p>
+      <p><strong>Correo:</strong> <%= cliente.correo %></p>
+      <p><strong>Dirección por defecto:</strong> <%= cliente.direccion || 'No especificada' %></p>
+    </div>
+    <div style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 20px; border-radius: 8px; text-align: center; min-width: 220px;">
+      <p style="margin: 0; font-size: 0.9rem; color: #166534;">Puntos de Fidelización</p>
+      <h3 style="margin: 5px 0 0 0; font-size: 2rem; color: #15803d;"><%= cliente.puntos_fidelizacion %> pts</h3>
+      <small style="color: #4ade80;">¡Disponibles para canjear!</small>
+    </div>
+  </div>
+
+  <!-- Historial de Pedidos -->
+  <h2>Historial de Compras y Estado de Entregas</h2>
+  <% if (pedidos.length === 0) { %>
+    <div class="alert alert-danger" style="margin-top: 20px;">
+      Aún no has realizado ninguna compra en nuestra tienda. <a href="/catalogo">Explora el catálogo aquí</a>
+    </div>
+  <% } else { %>
+    <div style="overflow-x: auto;">
+      <table style="width: 100%; border-collapse: collapse; margin-top: 15px; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+        <thead>
+          <tr style="background: #1e293b; color: #fff; text-align: left;">
+            <th style="padding: 12px;">ID Pedido</th>
+            <th style="padding: 12px;">Fecha</th>
+            <th style="padding: 12px;">Total</th>
+            <th style="padding: 12px;">Pago</th>
+            <th style="padding: 12px;">Estado Pedido</th>
+            <th style="padding: 12px;">Estado Entrega</th>
+            <th style="padding: 12px;">Acción</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% pedidos.forEach(ped => { %>
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+              <td style="padding: 12px; font-weight: bold;">#<%= ped.id_pedido %></td>
+              <td style="padding: 12px;"><%= new Date(ped.fecha_pedido).toLocaleString() %></td>
+              <td style="padding: 12px; font-weight: bold; color: #16a34a;">$ <%= Number(ped.total).toLocaleString('es-CO') %></td>
+              <td style="padding: 12px;"><%= ped.metodo_pago %></td>
+              <td style="padding: 12px;"><span class="badge-estado <%= ped.estado_pedido.toLowerCase() %>"><%= ped.estado_pedido %></span></td>
+              <td style="padding: 12px;">
+                <strong><%= ped.estado_entrega %></strong><br>
+                <small style="color: #64748b;"><%= ped.tipo_entrega %> <%= ped.transportadora ? '('+ped.transportadora+')' : '' %></small>
+              </td>
+              <td style="padding: 12px;">
+                <a href="/cuenta/pedidos/<%= ped.id_pedido %>" class="btn-sm" style="text-decoration: none; background: #2563eb; color: #fff; padding: 6px 10px; display: inline-block;">Ver Detalle</a>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</div>
+
+<%- include('../partials/footer') %>
