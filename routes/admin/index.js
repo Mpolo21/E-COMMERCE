@@ -5,6 +5,7 @@
 const express = require('express');
 const router = express.Router();
 const AdminController = require('../../controllers/adminController');
+const CompraEntregaController = require('../../controllers/compraEntregaController');
 const { requiereLogin } = require('../../middlewares/auth');
 const { requiereRol } = require('../../middlewares/roles');
 
@@ -41,5 +42,15 @@ router.post('/transportadoras/eliminar', AdminController.eliminarTransportadora)
 router.get('/pagos', AdminController.vistaPagos);
 router.post('/pagos/crear', AdminController.crearPago);
 router.post('/pagos/estado', AdminController.cambiarEstadoPago);
+
+// CU02.3 Gestión de entregas
+router.get('/entregas', CompraEntregaController.vistaEntregas);
+router.post('/entregas/actualizar', CompraEntregaController.actualizarEntrega);
+
+// Registro de compras a proveedores e Inventario
+router.get('/compras', CompraEntregaController.vistaCompras);
+router.post('/compras/registrar', CompraEntregaController.registrarCompra);
+
+// module.exports = router;
 
 module.exports = router;
