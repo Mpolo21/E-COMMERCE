@@ -1,0 +1,69 @@
+<%- include('../partials/header') %>
+<%- include('../partials/admin_nav') %>
+
+<h2>CU02.7 - Gestión de Proveedores y Productos Suministrados</h2>
+<div style="display:flex; gap:25px; flex-wrap:wrap; margin-top:20px;">
+  <div style="flex:1; min-width:280px; background:#fff; padding:20px; border-radius:8px;">
+    <h3>Nuevo Proveedor</h3>
+    <form action="/admin/proveedores/crear" method="POST">
+      <div class="form-group">
+        <label>Razón Social / Nombre *</label>
+        <input type="text" name="nombre_proveedor" required>
+      </div>
+      <div class="form-group">
+        <label>Teléfono</label>
+        <input type="text" name="telefono">
+      </div>
+      <div class="form-group">
+        <label>Correo Electrónico</label>
+        <input type="email" name="correo">
+      </div>
+      <button type="submit" class="btn-primary">Registrar Proveedor</button>
+    </form>
+  </div>
+
+  <div style="flex:2; min-width:340px; background:#fff; padding:20px; border-radius:8px;">
+    <h3>Proveedores Registrados</h3>
+    <table style="width:100%; border-collapse:collapse;">
+      <thead>
+        <tr style="background:#1e293b; color:#fff; text-align:left;">
+          <th style="padding:10px;">Proveedor</th>
+          <th style="padding:10px;">Contacto</th>
+          <th style="padding:10px;">Prendas que Suministra</th>
+          <th style="padding:10px;">Acción</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% proveedores.forEach(pr => { %>
+          <tr style="border-bottom:1px solid #e2e8f0;">
+            <form action="/admin/proveedores/actualizar" method="POST">
+              <td style="padding:10px;">
+                <input type="hidden" name="id_proveedor" value="<%= pr.id_proveedor %>">
+                <input type="text" name="nombre_proveedor" value="<%= pr.nombre_proveedor %>" required style="padding:5px; width:100%;">
+              </td>
+              <td style="padding:10px;">
+                <input type="text" name="telefono" value="<%= pr.telefono %>" placeholder="Teléfono" style="padding:5px; width:100%; margin-bottom:4px;">
+                <input type="email" name="correo" value="<%= pr.correo %>" placeholder="Correo" style="padding:5px; width:100%;">
+              </td>
+              <td style="padding:10px; font-size:0.85rem;">
+                <% const prods = productos.filter(p => p.id_proveedor === pr.id_proveedor); %>
+                <% if (prods.length === 0) { %>
+                  <em>Sin prendas asociadas</em>
+                <% } else { %>
+                  <ul style="margin:0; padding-left:16px;">
+                    <% prods.forEach(p => { %>
+                      <li><%= p.nombre_producto %></li>
+                    <% }) %>
+                  </ul>
+                <% } %>
+              </td>
+              <td style="padding:10px;"><button type="submit" class="btn-sm" style="background:#2563eb; color:#fff;">Guardar</button></td>
+            </form>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

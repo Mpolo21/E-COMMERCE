@@ -1,0 +1,28 @@
+<%- include('../partials/header') %>
+<%- include('../partials/admin_nav') %>
+
+<h2>Panel de Control Administrativo</h2>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-top: 20px;">
+  <div class="producto-card">
+    <p style="color:#64748b; margin:0;">Productos en Catálogo</p>
+    <h3 style="font-size: 2rem; margin: 10px 0;"><%= resumen.total_productos %></h3>
+    <a href="/admin/inventario" style="color:#2563eb; text-decoration:none; font-size:0.9rem;">Administrar inventario →</a>
+  </div>
+  <div class="producto-card">
+    <p style="color:#64748b; margin:0;">Clientes Registrados</p>
+    <h3 style="font-size: 2rem; margin: 10px 0;"><%= resumen.total_clientes %></h3>
+    <a href="/admin/consultas" style="color:#2563eb; text-decoration:none; font-size:0.9rem;">Ver fidelización →</a>
+  </div>
+  <div class="producto-card">
+    <p style="color:#64748b; margin:0;">Entregas Pendientes</p>
+    <h3 style="font-size: 2rem; margin: 10px 0; color:#d97706;"><%= resumen.pedidos_pendientes %></h3>
+    <a href="/admin/entregas" style="color:#2563eb; text-decoration:none; font-size:0.9rem;">Gestionar despachos →</a>
+  </div>
+  <div class="producto-card">
+    <p style="color:#64748b; margin:0;">Ingresos por Ventas</p>
+    <h3 style="font-size: 1.6rem; margin: 10px 0; color:#16a34a;">$ <%= Number(resumen.ventas_totales).toLocaleString('es-CO') %></h3>
+    <a href="/admin/consultas" style="color:#2563eb; text-decoration:none; font-size:0.9rem;">Ver balance por prenda →</a>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

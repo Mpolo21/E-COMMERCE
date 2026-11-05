@@ -1,0 +1,49 @@
+<%- include('../partials/header') %>
+<%- include('../partials/admin_nav') %>
+
+<h2>CU02.5 - Gestión de Marcas</h2>
+<div style="display:flex; gap:25px; flex-wrap:wrap; margin-top:20px;">
+  <div style="flex:1; min-width:280px; background:#fff; padding:20px; border-radius:8px;">
+    <h3>Registrar Marca</h3>
+    <form action="/admin/marcas/crear" method="POST">
+      <div class="form-group">
+        <label>Nombre de la Marca (Único) *</label>
+        <input type="text" name="nombre_marca" required placeholder="Ej: Chevignon">
+      </div>
+      <button type="submit" class="btn-primary">Crear Marca</button>
+    </form>
+  </div>
+
+  <div style="flex:2; min-width:320px; background:#fff; padding:20px; border-radius:8px;">
+    <h3>Listado de Marcas</h3>
+    <table style="width:100%; border-collapse:collapse;">
+      <thead>
+        <tr style="background:#1e293b; color:#fff; text-align:left;">
+          <th style="padding:10px;">ID</th>
+          <th style="padding:10px;">Nombre de Marca</th>
+          <th style="padding:10px;">Estado</th>
+          <th style="padding:10px;">Acción</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% marcas.forEach(m => { %>
+          <tr style="border-bottom:1px solid #e2e8f0;">
+            <form action="/admin/marcas/actualizar" method="POST">
+              <td style="padding:10px;">#<%= m.id_marca %><input type="hidden" name="id_marca" value="<%= m.id_marca %>"></td>
+              <td style="padding:10px;"><input type="text" name="nombre_marca" value="<%= m.nombre_marca %>" required style="padding:6px; width:100%;"></td>
+              <td style="padding:10px;">
+                <select name="estado" style="padding:6px;">
+                  <option value="1" <%= m.estado ? 'selected' : '' %>>Activa</option>
+                  <option value="0" <%= !m.estado ? 'selected' : '' %>>Inactiva</option>
+                </select>
+              </td>
+              <td style="padding:10px;"><button type="submit" class="btn-sm" style="background:#2563eb; color:#fff;">Actualizar</button></td>
+            </form>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

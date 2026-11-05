@@ -1,0 +1,180 @@
+<%- include('../partials/header') %>
+<%- include('../partials/admin_nav') %>
+
+<h2>CU02.1 - Gestión de Inventario Estacional y Catálogo</h2>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 25px; margin-top: 20px;">
+  <!-- Formulario 1: Crear Nuevo Producto -->
+  <div style="background:#fff; padding:20px; border-radius:8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+    <h3>1. Registrar Nueva Prenda</h3>
+    <form action="/admin/inventario/producto/crear" method="POST">
+      <div class="form-group">
+        <label>Nombre del Producto *</label>
+        <input type="text" name="nombre_producto" required placeholder="Ej: Camisa Lino Manga Corta">
+      </div>
+      <div class="form-group">
+        <label>Descripción</label>
+        <input type="text" name="descripcion" placeholder="Detalle de tela y corte">
+      </div>
+      <div style="display:flex; gap:10px;">
+        <div class="form-group" style="flex:1;">
+          <label>Precio Venta (COP) *</label>
+          <input type="number" name="precio" min="1000" step="500" required>
+        </div>
+        <div class="form-group" style="flex:1;">
+          <label>Prioridad Visual *</label>
+          <input type="number" name="prioridad_visual" value="50" min="0" max="999" required>
+        </div>
+      </div>
+      <div style="display:flex; gap:10px;">
+        <div class="form-group" style="flex:1;">
+          <label>Categoría *</label>
+          <select name="id_categoria" required>
+            <% categorias.forEach(c => { %>
+              <option value="<%= c.id_categoria %>"><%= c.nombre_categoria %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="form-group" style="flex:1;">
+          <label>Marca *</label>
+          <select name="id_marca" required>
+            <% marcas.forEach(m => { %>
+              <option value="<%= m.id_marca %>"><%= m.nombre_marca %></option>
+            <% }) %>
+          </select>
+        </div>
+      </div>
+      <div style="display:flex; gap:10px;">
+        <div class="form-group" style="flex:1;">
+          <label>Temporada *</label>
+          <select name="id_temporada" required>
+            <% temporadas.forEach(t => { %>
+              <option value="<%= t.id_temporada %>"><%= t.nombre_temporada %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="form-group" style="flex:1;">
+          <label>Proveedor *</label>
+          <select name="id_proveedor" required>
+            <% proveedores.forEach(p => { %>
+              <option value="<%= p.id_proveedor %>"><%= p.nombre_proveedor %></option>
+            <% }) %>
+          </select>
+        </div>
+      </div>
+      <button type="submit" class="btn-primary">Guardar Producto</button>
+    </form>
+  </div>
+
+  <!-- Formulario 2: Asignar Stock por Talla/Color y Crear Atributos -->
+  <div style="display:flex; flex-direction:column; gap:20px;">
+    <div style="background:#fff; padding:20px; border-radius:8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+      <h3>2. Asignar / Ajustar Stock por Talla y Color</h3>
+      <form action="/admin/inventario/stock" method="POST">
+        <div class="form-group">
+          <label>Producto *</label>
+          <select name="id_producto" required>
+            <% productos.forEach(prod => { %>
+              <option value="<%= prod.id_producto %>">#<%= prod.id_producto %> - <%= prod.nombre_producto %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div style="display:flex; gap:10px;">
+          <div class="form-group" style="flex:1;">
+            <label>Talla *</label>
+            <select name="id_talla" required>
+              <% tallas.forEach(t => { %>
+                <option value="<%= t.id_talla %>"><%= t.nombre_talla %></option>
+              <% }) %>
+            </select>
+          </div>
+          <div class="form-group" style="flex:1;">
+            <label>Color *</label>
+            <select name="id_color" required>
+              <% colores.forEach(c => { %>
+                <option value="<%= c.id_color %>"><%= c.nombre_color %></option>
+              <% }) %>
+            </select>
+          </div>
+          <div class="form-group" style="flex:1;">
+            <label>Stock Total *</label>
+            <input type="number" name="cantidad_stock" min="0" value="10" required>
+          </div>
+        </div>
+        <button type="submit" class="btn-primary">Guardar Stock</button>
+      </form>
+    </div>
+
+    <div style="background:#fff; padding:20px; border-radius:8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+      <h3>3. Agregar Categoría, Temporada, Talla o Color</h3>
+      <form action="/admin/inventario/auxiliar" method="POST" style="display:flex; gap:10px; align-items:flex-end;">
+        <div class="form-group" style="flex:1; margin:0;">
+          <label>Tipo</label>
+          <select name="tipo" required>
+            <option value="temporada">Temporada</option>
+            <option value="categoria">Categoría</option>
+            <option value="talla">Talla</option>
+            <option value="color">Color</option>
+          </select>
+        </div>
+        <div class="form-group" style="flex:2; margin:0;">
+          <label>Nombre / Valor</label>
+          <input type="text" name="valor" required placeholder="Ej: Colección Mitad de Año">
+        </div>
+        <button type="submit" class="btn-primary" style="width:auto;">Agregar</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Tabla de Productos y Edición Rápida de Prioridad/Temporada/Estado -->
+<h3 style="margin-top:35px;">Catálogo de Productos y Prioridad Visual</h3>
+<div style="overflow-x:auto;">
+  <table style="width:100%; border-collapse:collapse; background:#fff; border-radius:8px; overflow:hidden;">
+    <thead>
+      <tr style="background:#1e293b; color:#fff; text-align:left;">
+        <th style="padding:10px;">ID</th>
+        <th style="padding:10px;">Producto</th>
+        <th style="padding:10px;">Categoría / Marca</th>
+        <th style="padding:10px;">Temporada</th>
+        <th style="padding:10px;">Precio (COP)</th>
+        <th style="padding:10px;">Costo Prom.</th>
+        <th style="padding:10px;">Prioridad</th>
+        <th style="padding:10px;">Stock</th>
+        <th style="padding:10px;">Estado</th>
+        <th style="padding:10px;">Acción</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% productos.forEach(p => { %>
+        <tr style="border-bottom:1px solid #e2e8f0;">
+          <form action="/admin/inventario/producto/actualizar" method="POST">
+            <td style="padding:8px;">#<%= p.id_producto %><input type="hidden" name="id_producto" value="<%= p.id_producto %>"></td>
+            <td style="padding:8px;"><input type="text" name="nombre_producto" value="<%= p.nombre_producto %>" style="padding:5px; width:180px;" required></td>
+            <td style="padding:8px;"><small><%= p.nombre_categoria %><br><strong><%= p.nombre_marca %></strong></small></td>
+            <td style="padding:8px;">
+              <select name="id_temporada" style="padding:5px;">
+                <% temporadas.forEach(t => { %>
+                  <option value="<%= t.id_temporada %>" <%= p.id_temporada === t.id_temporada ? 'selected' : '' %>><%= t.nombre_temporada %></option>
+                <% }) %>
+              </select>
+            </td>
+            <td style="padding:8px;"><input type="number" name="precio" value="<%= p.precio %>" style="padding:5px; width:100px;" required></td>
+            <td style="padding:8px;">$ <%= Number(p.costo_promedio_ponderado).toLocaleString('es-CO') %></td>
+            <td style="padding:8px;"><input type="number" name="prioridad_visual" value="<%= p.prioridad_visual %>" style="padding:5px; width:65px;"></td>
+            <td style="padding:8px; font-weight:bold;"><%= p.stock_total %></td>
+            <td style="padding:8px;">
+              <select name="estado" style="padding:5px;">
+                <option value="1" <%= p.estado ? 'selected' : '' %>>Activo</option>
+                <option value="0" <%= !p.estado ? 'selected' : '' %>>Inactivo</option>
+              </select>
+            </td>
+            <td style="padding:8px;"><button type="submit" class="btn-sm" style="background:#2563eb; color:#fff;">Guardar</button></td>
+          </form>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+
+<%- include('../partials/footer') %>

@@ -1,0 +1,63 @@
+<%- include('../partials/header') %>
+<%- include('../partials/admin_nav') %>
+
+<h2>CU02.2 - Configuración de Métodos de Pago</h2>
+<div style="display:flex; gap:25px; flex-wrap:wrap; margin-top:20px;">
+  <div style="flex:1; min-width:280px; background:#fff; padding:20px; border-radius:8px;">
+    <h3>Nuevo Método de Pago</h3>
+    <form action="/admin/pagos/crear" method="POST">
+      <div class="form-group">
+        <label>Nombre del Método *</label>
+        <input type="text" name="nombre_metodo" required placeholder="Ej: Daviplata / PSE">
+      </div>
+      <button type="submit" class="btn-primary">Crear Método</button>
+    </form>
+  </div>
+
+  <div style="flex:2; min-width:320px; background:#fff; padding:20px; border-radius:8px;">
+    <h3>Métodos Configurados (Visibles en Checkout si están Activos)</h3>
+    <table style="width:100%; border-collapse:collapse;">
+      <thead>
+        <tr style="background:#1e293b; color:#fff; text-align:left;">
+          <th style="padding:10px;">ID</th>
+          <th style="padding:10px;">Método de Pago</th>
+          <th style="padding:10px;">Estado Actual</th>
+          <th style="padding:10px;">Acción</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% metodos.forEach(m => { %>
+          <tr style="border-bottom:1px solid #e2e8f0;">
+            <td style="padding:10px;">#<%= m.id_metodo %></td>
+            <td style="padding:10px;"><strong><%= m.nombre_metodo %></strong></td>
+            <td style="padding:10px;">
+              <% /* Variables de EJS para evitar alertas en VS Code */ %>
+              <% const claseEstado = m.estado ? 'pagado' : 'cancelado'; %>
+              <% const textoEstado = m.estado ? 'Habilitado' : 'Deshabilitado'; %>
+              
+              <span class="badge-estado <%= claseEstado %>">
+                <%= textoEstado %>
+              </span>
+            </td>
+            <td style="padding:10px;">
+              <form action="/admin/pagos/estado" method="POST">
+                <input type="hidden" name="id_metodo" value="<%= m.id_metodo %>">
+                <input type="hidden" name="estado" value="<%= m.estado ? '0' : '1' %>">
+                
+                <% /* Extraemos los estilos para que el validador CSS no falle */ %>
+                <% const btnColor = m.estado ? '#ef4444' : '#16a34a'; %>
+                <% const btnTexto = m.estado ? 'Deshabilitar' : 'Habilitar'; %>
+                
+                <button type="submit" class="btn-sm" style="background:<%= btnColor %>; color:#fff;">
+                  <%= btnTexto %>
+                </button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>
