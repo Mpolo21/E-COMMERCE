@@ -6,6 +6,7 @@ const express = require('express');
 const router = express.Router();
 const AdminController = require('../../controllers/adminController');
 const CompraEntregaController = require('../../controllers/compraEntregaController');
+const ReporteController = require('../../controllers/reporteController');
 const { requiereLogin } = require('../../middlewares/auth');
 const { requiereRol } = require('../../middlewares/roles');
 
@@ -52,5 +53,7 @@ router.get('/compras', CompraEntregaController.vistaCompras);
 router.post('/compras/registrar', CompraEntregaController.registrarCompra);
 
 // module.exports = router;
+
+router.get('/consultas', ReporteController.panelConsultasYReportes);
 
 module.exports = router;

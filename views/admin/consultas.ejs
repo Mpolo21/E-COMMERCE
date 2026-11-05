@@ -1,0 +1,333 @@
+<%- include('../partials/header') %>
+<%- include('../partials/admin_nav') %>
+
+<h2>CU02.4 y CU02.8 - Centro de Consultas y Reportes para Decisiones</h2>
+
+<!-- Barra de Parámetros Interactivos -->
+<form action="/admin/consultas" method="GET" style="background:#fff; padding:18px; border-radius:8px; margin:20px 0; box-shadow:0 2px 4px rgba(0,0,0,0.05); display:flex; gap:15px; flex-wrap:wrap; align-items:flex-end;">
+  <div class="form-group" style="margin:0; flex:1; min-width:140px;">
+    <label>Umbral Stock Bajo (&le;)</label>
+    <input type="number" name="umbral" value="<%= filtros.umbralStock %>" min="0" max="50">
+  </div>
+  <div class="form-group" style="margin:0; flex:2; min-width:200px;">
+    <label>Cliente (Consulta Específica #2)</label>
+    <select name="id_cliente">
+      <% clientes.forEach(c => { %>
+        <option value="<%= c.id_usuario %>" <%= filtros.idCliente == c.id_usuario ? 'selected' : '' %>><%= c.nombre %> (<%= c.correo %>)</option>
+      <% }) %>
+    </select>
+  </div>
+  <div class="form-group" style="margin:0; flex:2; min-width:180px;">
+    <label>Temporada (Consulta Conjunta #3)</label>
+    <select name="id_temporada">
+      <% temporadas.forEach(t => { %>
+        <option value="<%= t.id_temporada %>" <%= filtros.idTemporada == t.id_temporada ? 'selected' : '' %>><%= t.nombre_temporada %></option>
+      <% }) %>
+    </select>
+  </div>
+  <div class="form-group" style="margin:0; flex:1; min-width:140px;">
+    <label>Ventas Desde</label>
+    <input type="date" name="fecha_inicio" value="<%= filtros.fechaInicio %>">
+  </div>
+  <div class="form-group" style="margin:0; flex:1; min-width:140px;">
+    <label>Ventas Hasta</label>
+    <input type="date" name="fecha_fin" value="<%= filtros.fechaFin %>">
+  </div>
+  <button type="submit" class="btn-primary" style="width:auto; padding:10px 20px;">Actualizar Consultas</button>
+</form>
+
+<!-- ====================================================================== -->
+<!-- SECCIÓN 1: REPORTES GERENCIALES (CU02.8)                               -->
+<!-- ====================================================================== -->
+<div style="background:#fff; padding:20px; border-radius:8px; margin-bottom:25px; border-left:5px solid #16a34a;">
+  <h3>CU02.8 - Reporte 1: Balance Financiero por Prenda (Vista SQL: vista_balance_prendas)</h3>
+  <div style="overflow-x:auto;">
+    <table style="width:100%; border-collapse:collapse;">
+      <thead>
+        <tr style="background:#1e293b; color:#fff; text-align:left;">
+          <th style="padding:10px;">ID</th>
+          <th style="padding:10px;">Prenda</th>
+          <th style="padding:10px;">Unids. Compradas</th>
+          <th style="padding:10px;">Dinero Invertido</th>
+          <th style="padding:10px;">Unids. Vendidas</th>
+          <th style="padding:10px;">Dinero Ingresado</th>
+          <th style="padding:10px;">Balance (Ganancia / Pérdida)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% rep1_balancePrendas.forEach(b => { %>
+          <% const colorBalance = b.balance_ganancia_perdida >= 0 ? '#16a34a' : '#dc2626'; %>
+          <tr style="border-bottom:1px solid #e2e8f0;">
+            <td style="padding:8px;">#<%= b.id_producto %></td>
+            <td style="padding:8px;"><strong><%= b.nombre_producto %></strong></td>
+            <td style="padding:8px;"><%= b.unidades_compradas %></td>
+            <td style="padding:8px;">$ <%= Number(b.dinero_invertido).toLocaleString('es-CO') %></td>
+            <td style="padding:8px;"><%= b.unidades_vendidas %></td>
+            <td style="padding:8px;">$ <%= Number(b.dinero_ingresado).toLocaleString('es-CO') %></td>
+            <td style="padding:8px; font-weight:bold; color:<%= colorBalance %>;">
+              $ <%= Number(b.balance_ganancia_perdida).toLocaleString('es-CO') %>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 style="margin-top:25px;">CU02.8 - Reporte 2: Ventas por Período (<%= filtros.fechaInicio %> a <%= filtros.fechaFin %>)</h3>
+  <table style="width:100%; border-collapse:collapse;">
+    <thead>
+      <tr style="background:#334155; color:#fff; text-align:left;">
+        <th style="padding:10px;">Fecha</th>
+        <th style="padding:10px;">Pedidos Procesados</th>
+        <th style="padding:10px;">Prendas Vendidas</th>
+        <th style="padding:10px;">Ingresos Brutos</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% if (rep2_ventasPeriodo.length === 0) { %>
+        <tr><td colspan="4" style="padding:12px;">Sin ventas registradas en este rango de fechas.</td></tr>
+      <% } else { %>
+        <% rep2_ventasPeriodo.forEach(v => { %>
+          <tr style="border-bottom:1px solid #e2e8f0;">
+            <td style="padding:8px;"><%= new Date(v.fecha).toLocaleDateString() %></td>
+            <td style="padding:8px;"><%= v.total_pedidos %></td>
+            <td style="padding:8px;"><%= v.prendas_vendidas %></td>
+            <td style="padding:8px; font-weight:bold; color:#16a34a;">$ <%= Number(v.ingresos_brutos).toLocaleString('es-CO') %></td>
+          </tr>
+        <% }) %>
+      <% } %>
+    </tbody>
+  </table>
+</div>
+
+<!-- ====================================================================== -->
+<!-- SECCIÓN 2: 5 CONSULTAS ESPECÍFICAS (CU02.4)                            -->
+<!-- ====================================================================== -->
+<div style="background:#fff; padding:20px; border-radius:8px; margin-bottom:25px; border-left:5px solid #2563eb;">
+  <h3>Específica 1: Productos con Stock Bajo por Talla y Color (&le; <%= filtros.umbralStock %> unidades)</h3>
+  <table style="width:100%; border-collapse:collapse; margin-bottom:25px;">
+    <thead>
+      <tr style="background:#1e293b; color:#fff; text-align:left;">
+        <th style="padding:8px;">Producto</th>
+        <th style="padding:8px;">Marca</th>
+        <th style="padding:8px;">Talla</th>
+        <th style="padding:8px;">Color</th>
+        <th style="padding:8px;">Stock Actual</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% esp1_stockBajo.forEach(s => { %>
+        <tr style="border-bottom:1px solid #e2e8f0;">
+          <td style="padding:8px;"><strong><%= s.nombre_producto %></strong></td>
+          <td style="padding:8px;"><%= s.nombre_marca %></td>
+          <td style="padding:8px;"><%= s.nombre_talla %></td>
+          <td style="padding:8px;"><%= s.nombre_color %></td>
+          <td style="padding:8px; color:#dc2626; font-weight:bold;"><%= s.cantidad_stock %> unids.</td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+
+  <h3>Específica 2: Historial de Compras del Cliente Seleccionado</h3>
+  <table style="width:100%; border-collapse:collapse; margin-bottom:25px;">
+    <thead>
+      <tr style="background:#1e293b; color:#fff; text-align:left;">
+        <th style="padding:8px;">Pedido</th>
+        <th style="padding:8px;">Fecha</th>
+        <th style="padding:8px;">Prendas Adquiridas</th>
+        <th style="padding:8px;">Método Pago</th>
+        <th style="padding:8px;">Entrega</th>
+        <th style="padding:8px;">Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% if (esp2_historialCliente.length === 0) { %>
+        <tr><td colspan="6" style="padding:10px;">El cliente seleccionado no registra compras.</td></tr>
+      <% } else { %>
+        <% esp2_historialCliente.forEach(h => { %>
+          <tr style="border-bottom:1px solid #e2e8f0;">
+            <td style="padding:8px;">#<%= h.id_pedido %></td>
+            <td style="padding:8px;"><%= new Date(h.fecha_pedido).toLocaleDateString() %></td>
+            <td style="padding:8px;"><small><%= h.prendas %></small></td>
+            <td style="padding:8px;"><%= h.nombre_metodo %></td>
+            <td style="padding:8px;"><%= h.estado_entrega %> (<%= h.tipo_entrega %>)</td>
+            <td style="padding:8px; font-weight:bold;">$ <%= Number(h.total).toLocaleString('es-CO') %></td>
+          </tr>
+        <% }) %>
+      <% } %>
+    </tbody>
+  </table>
+
+  <h3>Específica 3: Productos Más Vendidos por Temporada</h3>
+  <table style="width:100%; border-collapse:collapse; margin-bottom:25px;">
+    <thead>
+      <tr style="background:#1e293b; color:#fff; text-align:left;">
+        <th style="padding:8px;">Temporada</th>
+        <th style="padding:8px;">Producto</th>
+        <th style="padding:8px;">Marca</th>
+        <th style="padding:8px;">Unidades Vendidas</th>
+        <th style="padding:8px;">Ingresos</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% esp3_masVendidosTemp.forEach(m => { %>
+        <tr style="border-bottom:1px solid #e2e8f0;">
+          <td style="padding:8px;"><strong><%= m.nombre_temporada %></strong></td>
+          <td style="padding:8px;"><%= m.nombre_producto %></td>
+          <td style="padding:8px;"><%= m.nombre_marca %></td>
+          <td style="padding:8px; font-weight:bold;"><%= m.total_unidades_vendidas %></td>
+          <td style="padding:8px; color:#16a34a;">$ <%= Number(m.ingresos_generados).toLocaleString('es-CO') %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+
+  <h3>Específica 4: Clientes con Mayor Puntaje de Fidelización</h3>
+  <table style="width:100%; border-collapse:collapse; margin-bottom:25px;">
+    <thead>
+      <tr style="background:#1e293b; color:#fff; text-align:left;">
+        <th style="padding:8px;">Cliente</th>
+        <th style="padding:8px;">Correo</th>
+        <th style="padding:8px;">Puntos Acumulados</th>
+        <th style="padding:8px;">Pedidos Pagados</th>
+        <th style="padding:8px;">Total Comprado</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% esp4_clientesFidelizacion.forEach(c => { %>
+        <tr style="border-bottom:1px solid #e2e8f0;">
+          <td style="padding:8px;"><strong><%= c.nombre %></strong></td>
+          <td style="padding:8px;"><%= c.correo %></td>
+          <td style="padding:8px; font-weight:bold; color:#15803d;"><%= c.puntos_fidelizacion %> pts</td>
+          <td style="padding:8px;"><%= c.total_pedidos %></td>
+          <td style="padding:8px;">$ <%= Number(c.total_gastado).toLocaleString('es-CO') %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+
+  <h3>Específica 5: Pedidos Pendientes de Entrega</h3>
+  <table style="width:100%; border-collapse:collapse;">
+    <thead>
+      <tr style="background:#1e293b; color:#fff; text-align:left;">
+        <th style="padding:8px;">Pedido</th>
+        <th style="padding:8px;">Cliente</th>
+        <th style="padding:8px;">Dirección</th>
+        <th style="padding:8px;">Responsable Logístico</th>
+        <th style="padding:8px;">Estado Actual</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% esp5_pedidosPendientes.forEach(p => { %>
+        <tr style="border-bottom:1px solid #e2e8f0;">
+          <td style="padding:8px;">#<%= p.id_pedido %></td>
+          <td style="padding:8px;"><%= p.cliente %></td>
+          <td style="padding:8px;"><%= p.direccion_entrega %></td>
+          <td style="padding:8px;"><%= p.responsable %></td>
+          <td style="padding:8px; font-weight:bold; color:#d97706;"><%= p.estado_entrega %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+
+<!-- ====================================================================== -->
+<!-- SECCIÓN 3: 4 CONSULTAS CONJUNTAS (CU02.4)                              -->
+<!-- ====================================================================== -->
+<div style="background:#fff; padding:20px; border-radius:8px; border-left:5px solid #7c3aed;">
+  <h3>Conjunta 1: Disponibilidad en Tiempo Real (Inventario Físico vs. Catálogo Web)</h3>
+  <table style="width:100%; border-collapse:collapse; margin-bottom:25px;">
+    <thead>
+      <tr style="background:#1e293b; color:#fff; text-align:left;">
+        <th style="padding:8px;">Producto</th>
+        <th style="padding:8px;">Categoría / Marca</th>
+        <th style="padding:8px;">Variantes (Talla/Color)</th>
+        <th style="padding:8px;">Stock Físico Total</th>
+        <th style="padding:8px;">Diagnóstico Control Sobreventa</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% conj1_disponibilidadReal.forEach(d => { %>
+        <tr style="border-bottom:1px solid #e2e8f0;">
+          <td style="padding:8px;"><strong><%= d.nombre_producto %></strong></td>
+          <td style="padding:8px;"><%= d.nombre_categoria %> - <%= d.nombre_marca %></td>
+          <td style="padding:8px;"><%= d.variantes_registradas %></td>
+          <td style="padding:8px; font-weight:bold;"><%= d.stock_real_fisico %></td>
+          <td style="padding:8px;"><%= d.diagnostico_disponibilidad %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+
+  <h3>Conjunta 2: Relación entre Método de Pago y Zona de Entrega (Propia vs. Transportadora)</h3>
+  <table style="width:100%; border-collapse:collapse; margin-bottom:25px;">
+    <thead>
+      <tr style="background:#1e293b; color:#fff; text-align:left;">
+        <th style="padding:8px;">Método de Pago</th>
+        <th style="padding:8px;">Tipo de Entrega</th>
+        <th style="padding:8px;">Zona de Cobertura</th>
+        <th style="padding:8px;">Cantidad Pedidos</th>
+        <th style="padding:8px;">Monto Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% conj2_pagoZona.forEach(pz => { %>
+        <tr style="border-bottom:1px solid #e2e8f0;">
+          <td style="padding:8px;"><strong><%= pz.nombre_metodo %></strong></td>
+          <td style="padding:8px;"><%= pz.tipo_entrega %></td>
+          <td style="padding:8px;"><%= pz.cobertura %></td>
+          <td style="padding:8px;"><%= pz.cantidad_pedidos %></td>
+          <td style="padding:8px; font-weight:bold;">$ <%= Number(pz.monto_total).toLocaleString('es-CO') %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+
+  <h3>Conjunta 3: Productos de la Temporada Seleccionada con Unidades Vendidas e Ingreso Generado</h3>
+  <table style="width:100%; border-collapse:collapse; margin-bottom:25px;">
+    <thead>
+      <tr style="background:#1e293b; color:#fff; text-align:left;">
+        <th style="padding:8px;">Temporada</th>
+        <th style="padding:8px;">Prenda</th>
+        <th style="padding:8px;">Precio Actual</th>
+        <th style="padding:8px;">Unidades Vendidas</th>
+        <th style="padding:8px;">Ingreso Generado</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% conj3_productosTemporada.forEach(pt => { %>
+        <tr style="border-bottom:1px solid #e2e8f0;">
+          <td style="padding:8px;"><%= pt.nombre_temporada %></td>
+          <td style="padding:8px;"><strong><%= pt.nombre_producto %></strong></td>
+          <td style="padding:8px;">$ <%= Number(pt.precio_actual).toLocaleString('es-CO') %></td>
+          <td style="padding:8px; font-weight:bold;"><%= pt.unidades_vendidas %></td>
+          <td style="padding:8px; color:#16a34a; font-weight:bold;">$ <%= Number(pt.ingreso_generado).toLocaleString('es-CO') %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+
+  <h3>Conjunta 4: Clientes que Compraron en Más de una Temporada y Productos Adquiridos</h3>
+  <table style="width:100%; border-collapse:collapse;">
+    <thead>
+      <tr style="background:#1e293b; color:#fff; text-align:left;">
+        <th style="padding:8px;">Cliente</th>
+        <th style="padding:8px;">Cant. Temporadas</th>
+        <th style="padding:8px;">Temporadas Compradas</th>
+        <th style="padding:8px;">Productos Adquiridos</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% conj4_clientesMultitemporada.forEach(cm => { %>
+        <tr style="border-bottom:1px solid #e2e8f0;">
+          <td style="padding:8px;"><strong><%= cm.nombre %></strong> (<%= cm.correo %>)</td>
+          <td style="padding:8px; font-weight:bold;"><%= cm.cantidad_temporadas_distintas %></td>
+          <td style="padding:8px;"><%= cm.temporadas_compradas %></td>
+          <td style="padding:8px;"><small><%= cm.productos_adquiridos %></small></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+
+<%- include('../partials/footer') %>
