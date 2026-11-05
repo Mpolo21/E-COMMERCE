@@ -52,8 +52,7 @@ router.post('/entregas/actualizar', CompraEntregaController.actualizarEntrega);
 router.get('/compras', CompraEntregaController.vistaCompras);
 router.post('/compras/registrar', CompraEntregaController.registrarCompra);
 
-// module.exports = router;
-
+// CU02.4 Consultas específicas/conjuntas y CU02.8 Reportes
 router.get('/consultas', ReporteController.panelConsultasYReportes);
 
 module.exports = router;

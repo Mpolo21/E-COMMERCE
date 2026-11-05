@@ -1,6 +1,7 @@
 /**
  * Archivo: models/reporteModel.js
  * Propósito: Consultas SQL específicas, conjuntas (CU02.4) y reportes financieros (CU02.8).
+ * Actualizado: Compatibilidad estricta con ONLY_FULL_GROUP_BY de MySQL.
  */
 const { pool } = require('../config/db');
 
@@ -47,7 +48,7 @@ class ReporteModel {
        JOIN tallas t ON dp.id_talla = t.id_talla
        JOIN colores col ON dp.id_color = col.id_color
        WHERE ped.id_cliente = ?
-       GROUP BY ped.id_pedido
+       GROUP BY ped.id_pedido, ped.fecha_pedido, ped.total, ped.estado_pedido, mp.nombre_metodo, e.tipo_entrega, e.estado_entrega
        ORDER BY ped.fecha_pedido DESC`,
       [id_cliente]
     );
@@ -66,7 +67,7 @@ class ReporteModel {
        JOIN temporadas temp ON p.id_temporada = temp.id_temporada
        JOIN marcas m ON p.id_marca = m.id_marca
        WHERE ped.estado_pedido != 'Cancelado'
-       GROUP BY temp.id_temporada, p.id_producto
+       GROUP BY temp.id_temporada, temp.nombre_temporada, p.id_producto, p.nombre_producto, m.nombre_marca
        ORDER BY temp.nombre_temporada ASC, total_unidades_vendidas DESC`
     );
     return rows;
@@ -81,7 +82,7 @@ class ReporteModel {
        FROM usuarios u
        LEFT JOIN pedidos ped ON u.id_usuario = ped.id_cliente AND ped.estado_pedido = 'Pagado'
        WHERE u.id_rol = 2
-       GROUP BY u.id_usuario
+       GROUP BY u.id_usuario, u.nombre, u.correo, u.puntos_fidelizacion
        ORDER BY u.puntos_fidelizacion DESC, total_gastado DESC`
     );
     return rows;
@@ -107,7 +108,7 @@ class ReporteModel {
   // CONSULTAS CONJUNTAS (CU02.4)
   // ==========================================================================
 
-  // 1. Disponibilidad en tiempo real de un producto (inventario vs. catálogo web) para evitar sobreventa
+  // 1. Disponibilidad en tiempo real de un producto (inventario vs. catálogo web)
   static async disponibilidadTiempoReal() {
     const [rows] = await pool.query(
       `SELECT p.id_producto, p.nombre_producto, c.nombre_categoria, m.nombre_marca,
@@ -123,13 +124,13 @@ class ReporteModel {
        JOIN categorias c ON p.id_categoria = c.id_categoria
        JOIN marcas m ON p.id_marca = m.id_marca
        LEFT JOIN inventario i ON p.id_producto = i.id_producto
-       GROUP BY p.id_producto
+       GROUP BY p.id_producto, p.nombre_producto, c.nombre_categoria, m.nombre_marca, p.estado
        ORDER BY stock_real_fisico ASC`
     );
     return rows;
   }
 
-  // 2. Relación entre método de pago y zona de entrega (propia vs. transportadora)
+  // 2. Relación entre método de pago y zona de entrega
   static async relacionMetodoPagoZonaEntrega() {
     const [rows] = await pool.query(
       `SELECT mp.nombre_metodo, e.tipo_entrega, 
@@ -140,7 +141,7 @@ class ReporteModel {
        JOIN metodos_pago mp ON ped.id_metodo_pago = mp.id_metodo
        JOIN entregas e ON ped.id_pedido = e.id_pedido
        WHERE ped.estado_pedido != 'Cancelado'
-       GROUP BY mp.id_metodo, e.tipo_entrega, e.zona_cobertura
+       GROUP BY mp.id_metodo, mp.nombre_metodo, e.tipo_entrega, e.zona_cobertura
        ORDER BY cantidad_pedidos DESC`
     );
     return rows;
@@ -157,14 +158,14 @@ class ReporteModel {
        LEFT JOIN detalles_pedido dp ON p.id_producto = dp.id_producto
        LEFT JOIN pedidos ped ON dp.id_pedido = ped.id_pedido AND ped.estado_pedido != 'Cancelado'
        WHERE p.id_temporada = ?
-       GROUP BY p.id_producto
+       GROUP BY p.id_producto, p.nombre_producto, p.precio, temp.nombre_temporada
        ORDER BY ingreso_generado DESC`,
       [id_temporada]
     );
     return rows;
   }
 
-  // 4. Clientes que compraron en más de una temporada, con los productos adquiridos
+  // 4. Clientes que compraron en más de una temporada
   static async clientesMultitemporada() {
     const [rows] = await pool.query(
       `SELECT u.id_usuario, u.nombre, u.correo,
@@ -177,7 +178,7 @@ class ReporteModel {
        JOIN productos p ON dp.id_producto = p.id_producto
        JOIN temporadas temp ON p.id_temporada = temp.id_temporada
        WHERE ped.estado_pedido != 'Cancelado'
-       GROUP BY u.id_usuario
+       GROUP BY u.id_usuario, u.nombre, u.correo
        HAVING COUNT(DISTINCT p.id_temporada) > 1
        ORDER BY cantidad_temporadas_distintas DESC`
     );
@@ -188,15 +189,11 @@ class ReporteModel {
   // REPORTES GERENCIALES (CU02.8)
   // ==========================================================================
 
-  // Reporte 1: Balance financiero por prenda usando la vista oficial vista_balance_prendas
   static async obtenerBalancePrendas() {
-    const [rows] = await pool.query(
-      `SELECT * FROM vista_balance_prendas ORDER BY balance_ganancia_perdida DESC`
-    );
+    const [rows] = await pool.query(`SELECT * FROM vista_balance_prendas ORDER BY balance_ganancia_perdida DESC`);
     return rows;
   }
 
-  // Reporte 2: Ventas por período de fechas
   static async obtenerVentasPorPeriodo(fechaInicio, fechaFin) {
     const [rows] = await pool.query(
       `SELECT DATE(ped.fecha_pedido) AS fecha,
