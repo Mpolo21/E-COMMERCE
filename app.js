@@ -55,6 +55,8 @@ const catalogoRoutes = require('./routes/catalogo');
 const carritoRoutes = require('./routes/carrito');
 const cuentaRoutes = require('./routes/cuenta');
 const adminRoutes = require('./routes/admin');
+const proveedorRoutes = require('./routes/proveedor');
+app.use('/proveedor', proveedorRoutes);
 app.use('/admin', adminRoutes);
 app.use('/cuenta', cuentaRoutes);
 app.use('/carrito', carritoRoutes);
