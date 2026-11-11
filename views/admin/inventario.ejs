@@ -5,7 +5,7 @@
 
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 25px; margin-top: 20px;">
   <!-- Formulario 1: Crear Nuevo Producto -->
-  <div style="background:#fff; padding:20px; border-radius:8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+  <div class="card">
     <h3>1. Registrar Nueva Prenda</h3>
     <form action="/admin/inventario/producto/crear" method="POST">
       <div class="form-group">
@@ -68,13 +68,13 @@
 
   <!-- Formulario 2: Asignar Stock por Talla/Color y Crear Atributos -->
   <div style="display:flex; flex-direction:column; gap:20px;">
-    <div style="background:#fff; padding:20px; border-radius:8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+    <div class="card">
       <h3>2. Asignar / Ajustar Stock por Talla y Color</h3>
       <form action="/admin/inventario/stock" method="POST">
         <div class="form-group">
-          <label>Producto *</label>
+          <label>Producto Activo *</label>
           <select name="id_producto" required>
-            <% productos.forEach(prod => { %>
+            <% productosSelectorStock.forEach(prod => { %>
               <option value="<%= prod.id_producto %>">#<%= prod.id_producto %> - <%= prod.nombre_producto %></option>
             <% }) %>
           </select>
@@ -105,10 +105,10 @@
       </form>
     </div>
 
-    <div style="background:#fff; padding:20px; border-radius:8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+    <div class="card">
       <h3>3. Agregar Categoría, Temporada, Talla o Color</h3>
-      <form action="/admin/inventario/auxiliar" method="POST" style="display:flex; gap:10px; align-items:flex-end;">
-        <div class="form-group" style="flex:1; margin:0;">
+      <form action="/admin/inventario/auxiliar" method="POST" style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
+        <div class="form-group" style="flex:1; margin:0; min-width:120px;">
           <label>Tipo</label>
           <select name="tipo" required>
             <option value="temporada">Temporada</option>
@@ -117,7 +117,7 @@
             <option value="color">Color</option>
           </select>
         </div>
-        <div class="form-group" style="flex:2; margin:0;">
+        <div class="form-group" style="flex:2; margin:0; min-width:180px;">
           <label>Nombre / Valor</label>
           <input type="text" name="valor" required placeholder="Ej: Colección Mitad de Año">
         </div>
@@ -127,54 +127,238 @@
   </div>
 </div>
 
-<!-- Tabla de Productos y Edición Rápida de Prioridad/Temporada/Estado -->
-<h3 style="margin-top:35px;">Catálogo de Productos y Prioridad Visual</h3>
-<div style="overflow-x:auto;">
-  <table style="width:100%; border-collapse:collapse; background:#fff; border-radius:8px; overflow:hidden;">
+<!-- Barra de Filtros y Búsqueda de Inventario (Actualización 2.3) -->
+<div class="card" style="margin-top: 32px; margin-bottom: 18px;">
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:14px;">
+    <h3 style="margin:0;">Listado de Productos en Inventario (<%= paginacion.totalRegistros %> registros)</h3>
+    <div style="display:flex; gap:8px;">
+      <a href="/admin/inventario?estado=activos&busqueda=<%= encodeURIComponent(filtros.busqueda) %>&limite=<%= filtros.limite %>"
+         class="btn-sm" style="<%= filtros.estado === 'activos' ? 'background:var(--bg-dark); color:#fff;' : '' %>">
+        Activos
+      </a>
+      <a href="/admin/inventario?estado=baja&busqueda=<%= encodeURIComponent(filtros.busqueda) %>&limite=<%= filtros.limite %>"
+         class="btn-sm" style="<%= filtros.estado === 'baja' ? 'background:var(--danger-text); color:#fff;' : '' %>">
+        Dados de baja
+      </a>
+      <a href="/admin/inventario?estado=todos&busqueda=<%= encodeURIComponent(filtros.busqueda) %>&limite=<%= filtros.limite %>"
+         class="btn-sm" style="<%= filtros.estado === 'todos' ? 'background:var(--accent); color:#fff;' : '' %>">
+        Todos
+      </a>
+    </div>
+  </div>
+
+  <form action="/admin/inventario" method="GET" style="display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end;">
+    <input type="hidden" name="estado" value="<%= filtros.estado %>">
+    <div class="form-group" style="margin:0; flex:2; min-width:220px;">
+      <label for="busqueda">Buscar por nombre, marca o categoría</label>
+      <input type="text" id="busqueda" name="busqueda" value="<%= filtros.busqueda %>" placeholder="Ej: Guayabera, Arturo Calle, Calzado...">
+    </div>
+    <div class="form-group" style="margin:0; width:130px;">
+      <label for="limite">Filas por página</label>
+      <select name="limite" id="limite">
+        <% [10, 15, 20, 50].forEach(num => { %>
+          <option value="<%= num %>" <%= filtros.limite == num ? 'selected' : '' %>><%= num %> filas</option>
+        <% }) %>
+      </select>
+    </div>
+    <button type="submit" class="btn-primary" style="width:auto; padding:10px 18px;">Buscar</button>
+    <a href="/admin/inventario?estado=<%= filtros.estado %>" class="btn-sm" style="padding:10px 14px;">Limpiar</a>
+  </form>
+</div>
+
+<!-- Tabla de Productos -->
+<div class="table-responsive">
+  <table>
     <thead>
-      <tr style="background:#1e293b; color:#fff; text-align:left;">
-        <th style="padding:10px;">ID</th>
-        <th style="padding:10px;">Producto</th>
-        <th style="padding:10px;">Categoría / Marca</th>
-        <th style="padding:10px;">Temporada</th>
-        <th style="padding:10px;">Precio (COP)</th>
-        <th style="padding:10px;">Costo Prom.</th>
-        <th style="padding:10px;">Prioridad</th>
-        <th style="padding:10px;">Stock</th>
-        <th style="padding:10px;">Estado</th>
-        <th style="padding:10px;">Acción</th>
+      <tr>
+        <th>ID</th>
+        <th>Producto</th>
+        <th>Categoría / Marca</th>
+        <th>Temporada</th>
+        <th>Precio (COP)</th>
+        <th>Costo Prom.</th>
+        <th>Prioridad</th>
+        <th>Stock</th>
+        <th>Estado</th>
+        <th>Guardar Edición</th>
+        <th>Gestión de Baja / Borrado</th>
       </tr>
     </thead>
     <tbody>
-      <% productos.forEach(p => { %>
-        <tr style="border-bottom:1px solid #e2e8f0;">
-          <form action="/admin/inventario/producto/actualizar" method="POST">
-            <td style="padding:8px;">#<%= p.id_producto %><input type="hidden" name="id_producto" value="<%= p.id_producto %>"></td>
-            <td style="padding:8px;"><input type="text" name="nombre_producto" value="<%= p.nombre_producto %>" style="padding:5px; width:180px;" required></td>
-            <td style="padding:8px;"><small><%= p.nombre_categoria %><br><strong><%= p.nombre_marca %></strong></small></td>
-            <td style="padding:8px;">
-              <select name="id_temporada" style="padding:5px;">
-                <% temporadas.forEach(t => { %>
-                  <option value="<%= t.id_temporada %>" <%= p.id_temporada === t.id_temporada ? 'selected' : '' %>><%= t.nombre_temporada %></option>
-                <% }) %>
-              </select>
-            </td>
-            <td style="padding:8px;"><input type="number" name="precio" value="<%= p.precio %>" style="padding:5px; width:100px;" required></td>
-            <td style="padding:8px;">$ <%= Number(p.costo_promedio_ponderado).toLocaleString('es-CO') %></td>
-            <td style="padding:8px;"><input type="number" name="prioridad_visual" value="<%= p.prioridad_visual %>" style="padding:5px; width:65px;"></td>
-            <td style="padding:8px; font-weight:bold;"><%= p.stock_total %></td>
-            <td style="padding:8px;">
-              <select name="estado" style="padding:5px;">
-                <option value="1" <%= p.estado ? 'selected' : '' %>>Activo</option>
-                <option value="0" <%= !p.estado ? 'selected' : '' %>>Inactivo</option>
-              </select>
-            </td>
-            <td style="padding:8px;"><button type="submit" class="btn-sm" style="background:#2563eb; color:#fff;">Guardar</button></td>
-          </form>
+      <% if (productos.length === 0) { %>
+        <tr>
+          <td colspan="11" style="text-align:center; padding:28px;">No se encontraron productos para los filtros seleccionados.</td>
         </tr>
-      <% }) %>
+      <% } else { %>
+        <% productos.forEach(p => { %>
+          <tr style="<%= !p.estado ? 'background:#fef2f2;' : '' %>">
+            <form action="/admin/inventario/producto/actualizar" method="POST">
+              <td>
+                <strong>#<%= p.id_producto %></strong>
+                <input type="hidden" name="id_producto" value="<%= p.id_producto %>">
+                <input type="hidden" name="filtro_estado" value="<%= filtros.estado %>">
+                <input type="hidden" name="filtro_busqueda" value="<%= filtros.busqueda %>">
+                <input type="hidden" name="filtro_pagina" value="<%= filtros.pagina %>">
+                <input type="hidden" name="filtro_limite" value="<%= filtros.limite %>">
+              </td>
+              <td>
+                <input type="text" name="nombre_producto" value="<%= p.nombre_producto %>" style="padding:6px; width:185px;" required>
+                <% if (!p.estado && p.motivo_baja) { %>
+                  <br><small style="color:var(--danger-text);">Motivo baja: <%= p.motivo_baja %></small>
+                <% } %>
+              </td>
+              <td><small><%= p.nombre_categoria %><br><strong><%= p.nombre_marca %></strong></small></td>
+              <td>
+                <select name="id_temporada" style="padding:6px;">
+                  <% temporadas.forEach(t => { %>
+                    <option value="<%= t.id_temporada %>" <%= p.id_temporada === t.id_temporada ? 'selected' : '' %>><%= t.nombre_temporada %></option>
+                  <% }) %>
+                </select>
+              </td>
+              <td><input type="number" name="precio" value="<%= p.precio %>" style="padding:6px; width:105px;" required></td>
+              <td><%= formatoCOP(p.costo_promedio_ponderado) %></td>
+              <td><input type="number" name="prioridad_visual" value="<%= p.prioridad_visual %>" style="padding:6px; width:65px;"></td>
+              <td style="font-weight:bold;"><%= p.stock_total %></td>
+              <td>
+                <% if (p.estado) { %>
+                  <span class="badge badge-success">Activo</span>
+                <% } else { %>
+                  <span class="badge badge-danger">Dado de baja</span>
+                  <% if (p.fecha_baja) { %>
+                    <br><small style="color:var(--text-muted); font-size:0.74rem;"><%= new Date(p.fecha_baja).toLocaleDateString('es-CO') %></small>
+                  <% } %>
+                <% } %>
+              </td>
+              <td>
+                <button type="submit" class="btn-sm" style="background:var(--bg-dark); color:#fff;">Guardar</button>
+              </td>
+            </form>
+            <td>
+              <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                <% if (p.estado) { %>
+                  <button type="button" class="btn-danger-sm"
+                    onclick="abrirModalBaja(<%= p.id_producto %>, <%- JSON.stringify(p.nombre_producto) %>, <%= p.stock_total %>, <%= p.pedidos_pendientes_entrega %>)">
+                    Dar de baja
+                  </button>
+                <% } else { %>
+                  <form action="/admin/inventario/producto/reactivar" method="POST" style="display:inline;">
+                    <input type="hidden" name="id_producto" value="<%= p.id_producto %>">
+                    <input type="hidden" name="filtro_estado" value="<%= filtros.estado %>">
+                    <input type="hidden" name="filtro_busqueda" value="<%= filtros.busqueda %>">
+                    <input type="hidden" name="filtro_pagina" value="<%= filtros.pagina %>">
+                    <input type="hidden" name="filtro_limite" value="<%= filtros.limite %>">
+                    <button type="submit" class="btn-sm" style="background:var(--success-bg); color:var(--success-text); border-color:#86efac;">
+                      Reactivar
+                    </button>
+                  </form>
+                <% } %>
+
+                <% if (Number(p.total_movimientos_historicos) === 0) { %>
+                  <button type="button" class="btn-danger-sm" style="background:#7f1d1d; color:#fff;"
+                    onclick="abrirModalEliminar(<%= p.id_producto %>, <%- JSON.stringify(p.nombre_producto) %>, <%= p.stock_total %>)">
+                    Eliminar definitivo
+                  </button>
+                <% } %>
+              </div>
+            </td>
+          </tr>
+        <% }) %>
+      <% } %>
     </tbody>
   </table>
 </div>
+
+<!-- Controles de Paginación -->
+<% if (paginacion.totalPaginas > 1) { %>
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-top:18px; flex-wrap:wrap; gap:10px;">
+    <span style="font-size:0.9rem; color:var(--text-secondary);">
+      Página <strong><%= paginacion.paginaActual %></strong> de <strong><%= paginacion.totalPaginas %></strong> (Total: <%= paginacion.totalRegistros %> productos)
+    </span>
+    <div style="display:flex; gap:6px; flex-wrap:wrap;">
+      <% for (let i = 1; i <= paginacion.totalPaginas; i++) { %>
+        <a href="/admin/inventario?estado=<%= filtros.estado %>&busqueda=<%= encodeURIComponent(filtros.busqueda) %>&limite=<%= filtros.limite %>&pagina=<%= i %>"
+           class="btn-sm" style="<%= i === paginacion.paginaActual ? 'background:var(--bg-dark); color:#fff;' : '' %>">
+          <%= i %>
+        </a>
+      <% } %>
+    </div>
+  </div>
+<% } %>
+
+<!-- MODAL 1: Confirmación para Dar de Baja -->
+<div id="modal-baja" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:999; align-items:center; justify-content:center; padding:15px;">
+  <div class="card" style="max-width:500px; width:100%;">
+    <h3 style="margin-top:0;">Confirmar Baja de Producto</h3>
+    <p id="baja-resumen" style="color:var(--text-secondary);"></p>
+    <div class="alert alert-warning" style="font-size:0.86rem;">
+      <strong>¿Qué ocurrirá?</strong> El producto dejará de mostrarse inmediatamente en el catálogo del cliente y no podrá comprarse. Su stock actual y todo su historial de ventas/compras se conservarán intactos. Los pedidos en curso seguirán su proceso normal.
+    </div>
+    <form action="/admin/inventario/producto/baja" method="POST">
+      <input type="hidden" name="id_producto" id="baja-id-producto">
+      <input type="hidden" name="filtro_estado" value="<%= filtros.estado %>">
+      <input type="hidden" name="filtro_busqueda" value="<%= filtros.busqueda %>">
+      <input type="hidden" name="filtro_pagina" value="<%= filtros.pagina %>">
+      <input type="hidden" name="filtro_limite" value="<%= filtros.limite %>">
+      <div class="form-group">
+        <label for="motivo_baja">Motivo de la baja (opcional)</label>
+        <input type="text" name="motivo_baja" id="motivo_baja" placeholder="Ej: Fin de colección, cambio de referencia...">
+      </div>
+      <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:15px;">
+        <button type="button" class="btn-sm" onclick="cerrarModales()">Cancelar</button>
+        <button type="submit" class="btn-danger-sm" style="padding:9px 16px;">Confirmar Baja Lógica</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL 2: Doble Confirmación para Eliminar Definitivamente (Solo sin historial) -->
+<div id="modal-eliminar" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:999; align-items:center; justify-content:center; padding:15px;">
+  <div class="card" style="max-width:500px; width:100%; border-top:4px solid #dc2626;">
+    <h3 style="margin-top:0; color:#991b1b;">Eliminar Producto Definitivamente</h3>
+    <p id="eliminar-resumen" style="color:var(--text-secondary);"></p>
+    <div class="alert alert-danger" style="font-size:0.86rem;">
+      Esta prenda no registra ventas ni compras históricas. Al eliminarla se borrarán también sus filas de stock en inventario y <strong>esta acción no se puede deshacer</strong>.
+    </div>
+    <form action="/admin/inventario/producto/eliminar" method="POST">
+      <input type="hidden" name="id_producto" id="eliminar-id-producto">
+      <input type="hidden" name="filtro_estado" value="<%= filtros.estado %>">
+      <input type="hidden" name="filtro_busqueda" value="<%= filtros.busqueda %>">
+      <input type="hidden" name="filtro_pagina" value="<%= filtros.pagina %>">
+      <input type="hidden" name="filtro_limite" value="<%= filtros.limite %>">
+      <div class="form-group">
+        <label for="confirmacion_texto">Para confirmar, escribe la palabra <strong>ELIMINAR</strong> *</label>
+        <input type="text" name="confirmacion_texto" id="confirmacion_texto" required autocomplete="off" placeholder="Escribe ELIMINAR">
+      </div>
+      <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:15px;">
+        <button type="button" class="btn-sm" onclick="cerrarModales()">Cancelar</button>
+        <button type="submit" class="btn-danger-sm" style="background:#991b1b; color:#fff; padding:9px 16px;">Borrar Definitivamente</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function abrirModalBaja(id, nombre, stock, pendientes) {
+    document.getElementById('baja-id-producto').value = id;
+    document.getElementById('baja-resumen').innerHTML =
+      'Prenda: <strong>#' + id + ' - ' + nombre + '</strong><br>' +
+      'Stock físico actual: <strong>' + stock + ' unidades</strong><br>' +
+      'Pedidos pendientes de entrega que la incluyen: <strong>' + pendientes + ' pedido(s)</strong>';
+    document.getElementById('modal-baja').style.display = 'flex';
+  }
+
+  function abrirModalEliminar(id, nombre, stock) {
+    document.getElementById('eliminar-id-producto').value = id;
+    document.getElementById('confirmacion_texto').value = '';
+    document.getElementById('eliminar-resumen').innerHTML =
+      'Vas a borrar de forma permanente: <strong>#' + id + ' - ' + nombre + '</strong> (Stock actual a descartar: ' + stock + ' unidades).';
+    document.getElementById('modal-eliminar').style.display = 'flex';
+  }
+
+  function cerrarModales() {
+    document.getElementById('modal-baja').style.display = 'none';
+    document.getElementById('modal-eliminar').style.display = 'none';
+  }
+</script>
 
 <%- include('../partials/footer') %>

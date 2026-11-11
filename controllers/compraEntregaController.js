@@ -1,6 +1,6 @@
 /**
  * Archivo: controllers/compraEntregaController.js
- * Propósito: Controlar despachos, Pagos Contraentrega (Ajuste 1), Cancelaciones (Ajuste 4.5) y Compras.
+ * Propósito: Controlar despachos, Pagos Contraentrega (Ajuste 1), Cancelaciones (Ajuste 4.5) y Compras (Actualización 2.4).
  */
 const CompraEntregaModel = require('../models/compraEntregaModel');
 const AdminModel = require('../models/adminModel');
@@ -33,7 +33,6 @@ class CompraEntregaController {
     }
   }
 
-  // AJUSTE 1: Vista de Pagos Contraentrega
   static async vistaPagosContraentrega(req, res) {
     try {
       const { estado = '', busqueda = '' } = req.query;
@@ -50,7 +49,6 @@ class CompraEntregaController {
     }
   }
 
-  // AJUSTE 1: Confirmar recaudo de pedido contraentrega y otorgar puntos
   static async confirmarPagoContraentrega(req, res) {
     try {
       const { id_pedido } = req.body;
@@ -65,7 +63,6 @@ class CompraEntregaController {
     }
   }
 
-  // AJUSTE 4.5: Cancelar pedido devolviendo stock, puntos canjeados y revirtiendo puntos ganados
   static async cancelarPedido(req, res) {
     try {
       const { id_pedido, origen } = req.body;
@@ -110,7 +107,7 @@ class CompraEntregaController {
       res.redirect('/admin/compras');
     } catch (error) {
       console.error('Error en registrarCompra:', error);
-      req.session.mensajeError = 'Ocurrió un error al procesar la compra transaccional.';
+      req.session.mensajeError = error.message || 'Ocurrió un error al procesar la compra transaccional.';
       res.redirect('/admin/compras');
     }
   }

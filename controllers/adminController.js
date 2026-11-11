@@ -1,11 +1,20 @@
 /**
  * Archivo: controllers/adminController.js
- * Propósito: Controladores del módulo Administrador para inventario, marcas, proveedores, transportadoras y pagos.
+ * Propósito: Controladores del módulo Administrador para inventario (con baja lógica y eliminación), marcas, proveedores, transportadoras y pagos.
  */
 const AdminModel = require('../models/adminModel');
 
+function construirUrlRetornoInventario(bodyOrQuery = {}) {
+  const params = new URLSearchParams();
+  if (bodyOrQuery.filtro_estado) params.set('estado', bodyOrQuery.filtro_estado);
+  if (bodyOrQuery.filtro_busqueda) params.set('busqueda', bodyOrQuery.filtro_busqueda);
+  if (bodyOrQuery.filtro_pagina) params.set('pagina', bodyOrQuery.filtro_pagina);
+  if (bodyOrQuery.filtro_limite) params.set('limite', bodyOrQuery.filtro_limite);
+  const qs = params.toString();
+  return `/admin/inventario${qs ? '?' + qs : ''}`;
+}
+
 class AdminController {
-  // Dashboard principal
   static async dashboard(req, res) {
     try {
       const resumen = await AdminModel.obtenerResumenDashboard();
@@ -20,14 +29,31 @@ class AdminController {
   }
 
   // ==========================================
-  // CU02.1 INVENTARIO ESTACIONAL
+  // CU02.1 INVENTARIO ESTACIONAL + ACTUALIZACIÓN 2
   // ==========================================
   static async vistaInventario(req, res) {
     try {
-      const datos = await AdminModel.obtenerDatosInventario();
+      const estadoFiltro = ['activos', 'baja', 'todos'].includes(req.query.estado) ? req.query.estado : 'activos';
+      const busqueda = req.query.busqueda ? req.query.busqueda.trim() : '';
+      const pagina = Math.max(1, parseInt(req.query.pagina, 10) || 1);
+      const limite = [10, 15, 20, 50].includes(parseInt(req.query.limite, 10)) ? parseInt(req.query.limite, 10) : 15;
+
+      const datos = await AdminModel.obtenerDatosInventario({
+        estadoFiltro,
+        busqueda,
+        pagina,
+        limite
+      });
+
       res.render('admin/inventario', {
         titulo: 'Gestión de Inventario Estacional - PIJIC',
-        ...datos
+        ...datos,
+        filtros: {
+          estado: estadoFiltro,
+          busqueda,
+          pagina,
+          limite
+        }
       });
     } catch (error) {
       console.error('Error al cargar inventario:', error);
@@ -50,7 +76,7 @@ class AdminController {
         id_marca,
         id_temporada,
         id_proveedor,
-        prioridad_visual: parseInt(prioridad_visual) || 0
+        prioridad_visual: parseInt(prioridad_visual, 10) || 0
       });
       req.session.mensajeExito = 'Producto creado correctamente.';
       res.redirect('/admin/inventario');
@@ -62,19 +88,73 @@ class AdminController {
   }
 
   static async actualizarProducto(req, res) {
+    const urlRetorno = construirUrlRetornoInventario(req.body);
     try {
-      const { id_producto, nombre_producto, precio, id_temporada, prioridad_visual, estado } = req.body;
+      const { id_producto, nombre_producto, precio, id_temporada, prioridad_visual } = req.body;
       if (!id_producto || !nombre_producto || !precio) {
         req.session.mensajeError = 'Nombre y precio son obligatorios.';
-        return res.redirect('/admin/inventario');
+        return res.redirect(urlRetorno);
       }
-      await AdminModel.actualizarProducto({ id_producto, nombre_producto: nombre_producto.trim(), precio, id_temporada, prioridad_visual, estado });
-      req.session.mensajeExito = `Producto #${id_producto} actualizado.`;
-      res.redirect('/admin/inventario');
+      await AdminModel.actualizarProducto({
+        id_producto,
+        nombre_producto: nombre_producto.trim(),
+        precio,
+        id_temporada,
+        prioridad_visual
+      });
+      req.session.mensajeExito = `Datos del Producto #${id_producto} actualizados.`;
+      res.redirect(urlRetorno);
     } catch (error) {
       console.error('Error al actualizar producto:', error);
       req.session.mensajeError = 'No se pudo actualizar el producto.';
-      res.redirect('/admin/inventario');
+      res.redirect(urlRetorno);
+    }
+  }
+
+  // Actualización 2: Dar de baja producto
+  static async darDeBajaProducto(req, res) {
+    const urlRetorno = construirUrlRetornoInventario(req.body);
+    try {
+      const { id_producto, motivo_baja } = req.body;
+      const nombre = await AdminModel.darDeBajaProducto(id_producto, motivo_baja);
+      req.session.mensajeExito = `El producto "${nombre}" (#${id_producto}) fue dado de baja. Ya no aparece en el catálogo del cliente y su historial se conserva intacto.`;
+      res.redirect(urlRetorno);
+    } catch (error) {
+      req.session.mensajeError = error.message || 'No se pudo dar de baja el producto.';
+      res.redirect(urlRetorno);
+    }
+  }
+
+  // Actualización 2: Reactivar producto
+  static async reactivarProducto(req, res) {
+    const urlRetorno = construirUrlRetornoInventario(req.body);
+    try {
+      const { id_producto } = req.body;
+      const nombre = await AdminModel.reactivarProducto(id_producto);
+      req.session.mensajeExito = `El producto "${nombre}" (#${id_producto}) ha sido reactivado y vuelve a estar visible en la tienda.`;
+      res.redirect(urlRetorno);
+    } catch (error) {
+      req.session.mensajeError = error.message || 'No se pudo reactivar el producto.';
+      res.redirect(urlRetorno);
+    }
+  }
+
+  // Actualización 2: Eliminar definitivamente producto sin historial
+  static async eliminarProductoDefinitivamente(req, res) {
+    const urlRetorno = construirUrlRetornoInventario(req.body);
+    try {
+      const { id_producto, confirmacion_texto } = req.body;
+      if (!confirmacion_texto || confirmacion_texto.trim().toUpperCase() !== 'ELIMINAR') {
+        req.session.mensajeError = 'Debes escribir exactamente la palabra ELIMINAR para confirmar el borrado definitivo.';
+        return res.redirect(urlRetorno);
+      }
+
+      const nombre = await AdminModel.eliminarProductoDefinitivamente(id_producto);
+      req.session.mensajeExito = `El producto "${nombre}" (#${id_producto}) y sus registros de stock iniciales fueron eliminados definitivamente.`;
+      res.redirect(urlRetorno);
+    } catch (error) {
+      req.session.mensajeError = error.message || 'No se pudo eliminar el producto.';
+      res.redirect(urlRetorno);
     }
   }
 
@@ -89,7 +169,7 @@ class AdminController {
         id_producto,
         id_talla,
         id_color,
-        cantidad_stock: parseInt(cantidad_stock)
+        cantidad_stock: parseInt(cantidad_stock, 10)
       });
       req.session.mensajeExito = 'Stock por talla y color actualizado correctamente.';
       res.redirect('/admin/inventario');

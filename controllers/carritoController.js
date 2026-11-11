@@ -1,6 +1,6 @@
 /**
  * Archivo: controllers/carritoController.js
- * Propósito: Gestionar el carrito de compras y la ejecución del checkout (CU01.2, CU01.5, Ajustes 1 y 4).
+ * Propósito: Gestionar el carrito de compras y la ejecución del checkout (CU01.2, CU01.5, Ajustes 1, 4 y Actualización 2.4).
  */
 const CarritoModel = require('../models/carritoModel');
 const PuntosService = require('../services/puntosService');
@@ -14,7 +14,7 @@ class CarritoController {
 
       const itemInv = await CarritoModel.obtenerItemInventario(id_inventario);
       if (!itemInv) {
-        req.session.mensajeError = 'La combinación de producto seleccionada no es válida.';
+        req.session.mensajeError = 'La combinación de producto seleccionada no es válida o el producto fue dado de baja.';
         return res.redirect('/catalogo');
       }
 
@@ -46,6 +46,7 @@ class CarritoController {
           nombre_color: itemInv.nombre_color,
           precio: Number(itemInv.precio),
           stock_maximo: itemInv.cantidad_stock,
+          dado_de_baja: false,
           cantidad: cantNum
         });
       }
@@ -58,16 +59,27 @@ class CarritoController {
     }
   }
 
-  static verCarrito(req, res) {
-    const carrito = req.session.carrito || [];
-    const subtotal = carrito.reduce((acc, item) => acc + item.precio * item.cantidad, 0);
+  static async verCarrito(req, res) {
+    try {
+      const carritoSesion = req.session.carrito || [];
+      const { items: carrito, hayDadosDeBaja } = await CarritoModel.sincronizarEstadoCarrito(carritoSesion);
+      req.session.carrito = carrito;
 
-    res.render('cliente/carrito', {
-      titulo: 'Carrito de Compras - PIJIC Menswear',
-      carrito,
-      subtotal,
-      total: subtotal
-    });
+      const subtotal = carrito
+        .filter((item) => !item.dado_de_baja)
+        .reduce((acc, item) => acc + item.precio * item.cantidad, 0);
+
+      res.render('cliente/carrito', {
+        titulo: 'Carrito de Compras - PIJIC Menswear',
+        carrito,
+        hayDadosDeBaja,
+        subtotal,
+        total: subtotal
+      });
+    } catch (error) {
+      console.error('Error al ver carrito:', error);
+      res.status(500).render('errors/500', { titulo: 'Error del servidor' });
+    }
   }
 
   static async modificarCantidad(req, res) {
@@ -79,7 +91,11 @@ class CarritoController {
       if (index > -1) {
         if (accion === 'aumentar') {
           const itemInv = await CarritoModel.obtenerItemInventario(id_inventario);
-          if (!itemInv || req.session.carrito[index].cantidad + 1 > itemInv.cantidad_stock) {
+          if (!itemInv) {
+            req.session.mensajeError = 'Esta prenda fue dada de baja y no se pueden agregar más unidades.';
+            return res.redirect('/carrito');
+          }
+          if (req.session.carrito[index].cantidad + 1 > itemInv.cantidad_stock) {
             req.session.mensajeError = 'Alcanzaste el límite de stock disponible para esta prenda.';
             return res.redirect('/carrito');
           }
@@ -102,10 +118,19 @@ class CarritoController {
 
   static async mostrarCheckout(req, res) {
     try {
-      const carrito = req.session.carrito || [];
-      if (carrito.length === 0) {
+      const carritoSesion = req.session.carrito || [];
+      if (carritoSesion.length === 0) {
         req.session.mensajeError = 'Tu carrito está vacío.';
         return res.redirect('/catalogo');
+      }
+
+      const { items: carrito, hayDadosDeBaja } = await CarritoModel.sincronizarEstadoCarrito(carritoSesion);
+      req.session.carrito = carrito;
+
+      if (hayDadosDeBaja) {
+        req.session.mensajeError =
+          'Una o más prendas en tu carrito fueron dadas de baja y ya no están disponibles. Retíralas para poder continuar al pago.';
+        return res.redirect('/carrito');
       }
 
       const [metodosPago, datosUsuario] = await Promise.all([
@@ -151,7 +176,6 @@ class CarritoController {
         return res.redirect('/carrito/checkout');
       }
 
-      // Si la casilla usar_puntos está marcada, leemos puntos_a_canjear; de lo contrario 0
       let puntosSolicitados = 0;
       if (usar_puntos === '1' || usar_puntos === 'on') {
         const valorBruto = String(puntos_a_canjear ?? '0').trim();

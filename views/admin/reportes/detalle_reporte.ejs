@@ -1,0 +1,203 @@
+<%- include('../../partials/header') %>
+<%- include('../../partials/admin_nav') %>
+<%- include('./partials/_encabezado_reporte') %>
+
+<!-- Barra de Filtros Específicos del Reporte -->
+<form action="/admin/reportes/<%= reporte.slug %>" method="GET" class="card" style="margin-bottom: 22px; display:flex; gap:14px; flex-wrap:wrap; align-items:flex-end;">
+  <% if (reporte.slug === 'historial-cliente') { %>
+    <div class="form-group" style="margin:0; flex:2; min-width:260px;">
+      <label for="id_cliente">Seleccionar Cliente (Búsqueda rápida en la lista) *</label>
+      <select name="id_cliente" id="id_cliente" required>
+        <option value="">-- Elige un cliente para consultar su historial --</option>
+        <% catalogos.clientes.forEach(c => { %>
+          <option value="<%= c.id_usuario %>" <%= filtros.id_cliente == c.id_usuario ? 'selected' : '' %>>
+            <%= c.nombre %> (<%= c.correo %>)
+          </option>
+        <% }) %>
+      </select>
+    </div>
+  <% } %>
+
+  <% if (['balance-prendas', 'mas-vendidos-temporada', 'desempeno-temporada'].includes(reporte.slug)) { %>
+    <div class="form-group" style="margin:0; flex:1; min-width:200px;">
+      <label for="id_temporada">Temporada <%= reporte.slug === 'desempeno-temporada' ? '*' : '' %></label>
+      <select name="id_temporada" id="id_temporada" <%= reporte.slug === 'desempeno-temporada' ? 'required' : '' %>>
+        <option value=""><%= reporte.slug === 'desempeno-temporada' ? '-- Selecciona una temporada --' : 'Todas las temporadas' %></option>
+        <% catalogos.temporadas.forEach(t => { %>
+          <option value="<%= t.id_temporada %>" <%= filtros.id_temporada == t.id_temporada ? 'selected' : '' %>><%= t.nombre_temporada %></option>
+        <% }) %>
+      </select>
+    </div>
+  <% } %>
+
+  <% if (['balance-prendas', 'disponibilidad-tiempo-real'].includes(reporte.slug)) { %>
+    <div class="form-group" style="margin:0; flex:1; min-width:180px;">
+      <label for="id_categoria">Categoría</label>
+      <select name="id_categoria" id="id_categoria">
+        <option value="">Todas las categorías</option>
+        <% catalogos.categorias.forEach(cat => { %>
+          <option value="<%= cat.id_categoria %>" <%= filtros.id_categoria == cat.id_categoria ? 'selected' : '' %>><%= cat.nombre_categoria %></option>
+        <% }) %>
+      </select>
+    </div>
+  <% } %>
+
+  <% if (reporte.slug === 'ventas-periodo') { %>
+    <div class="form-group" style="margin:0; flex:1; min-width:150px;">
+      <label for="fecha_inicio">Fecha Inicial</label>
+      <input type="date" name="fecha_inicio" id="fecha_inicio" value="<%= filtros.fecha_inicio %>">
+    </div>
+    <div class="form-group" style="margin:0; flex:1; min-width:150px;">
+      <label for="fecha_fin">Fecha Final</label>
+      <input type="date" name="fecha_fin" id="fecha_fin" value="<%= filtros.fecha_fin %>">
+    </div>
+  <% } %>
+
+  <% if (reporte.slug === 'stock-bajo') { %>
+    <div class="form-group" style="margin:0; width:160px;">
+      <label for="umbral">Umbral Stock (&le;)</label>
+      <input type="number" name="umbral" id="umbral" min="0" max="200" value="<%= filtros.umbral %>">
+    </div>
+  <% } %>
+
+  <% if (reporte.slug === 'pedidos-pendientes') { %>
+    <div class="form-group" style="margin:0; width:190px;">
+      <label for="estado_entrega">Estado Entrega</label>
+      <select name="estado_entrega" id="estado_entrega">
+        <option value="">Todos los pendientes</option>
+        <option value="En preparación" <%= filtros.estado_entrega === 'En preparación' ? 'selected' : '' %>>En preparación</option>
+        <option value="Despachado" <%= filtros.estado_entrega === 'Despachado' ? 'selected' : '' %>>Despachado</option>
+      </select>
+    </div>
+  <% } %>
+
+  <% if (reporte.slug === 'pago-zona-entrega') { %>
+    <div class="form-group" style="margin:0; width:210px;">
+      <label for="tipo_entrega">Tipo de Entrega</label>
+      <select name="tipo_entrega" id="tipo_entrega">
+        <option value="">Todas</option>
+        <option value="Propia" <%= filtros.tipo_entrega === 'Propia' ? 'selected' : '' %>>Logística Propia (Urabá)</option>
+        <option value="Transportadora Externa" <%= filtros.tipo_entrega === 'Transportadora Externa' ? 'selected' : '' %>>Transportadora Externa</option>
+      </select>
+    </div>
+  <% } %>
+
+  <% if (['balance-prendas', 'stock-bajo', 'mas-vendidos-temporada', 'clientes-fidelizacion', 'pedidos-pendientes', 'disponibilidad-tiempo-real', 'desempeno-temporada', 'clientes-multitemporada'].includes(reporte.slug)) { %>
+    <div class="form-group" style="margin:0; flex:2; min-width:200px;">
+      <label for="busqueda">Buscar texto</label>
+      <input type="text" name="busqueda" id="busqueda" value="<%= filtros.busqueda || '' %>" placeholder="Filtrar por nombre...">
+    </div>
+  <% } %>
+
+  <div class="form-group" style="margin:0; width:125px;">
+    <label for="limite">Filas / pág.</label>
+    <select name="limite" id="limite">
+      <% [10, 20, 50].forEach(n => { %>
+        <option value="<%= n %>" <%= paginacion.limite == n ? 'selected' : '' %>><%= n %> filas</option>
+      <% }) %>
+    </select>
+  </div>
+
+  <input type="hidden" name="orden" value="<%= filtros.orden %>">
+  <input type="hidden" name="dir" value="<%= filtros.dir %>">
+
+  <button type="submit" class="btn-primary" style="width:auto; padding:10px 20px;">Consultar</button>
+  <a href="/admin/reportes/<%= reporte.slug %>" class="btn-sm" style="padding:10px 14px;">Restablecer</a>
+</form>
+
+<!-- Resultados del Reporte -->
+<% if (esperandoSeleccion) { %>
+  <div class="card" style="text-align:center; padding:42px 20px;">
+    <h3>Selecciona un parámetro arriba para ejecutar la consulta</h3>
+    <p style="color:var(--text-secondary); margin:0;">
+      Para optimizar el rendimiento del servidor, este reporte se ejecuta únicamente cuando eliges el filtro principal y presionas <strong>Consultar</strong>.
+    </p>
+  </div>
+<% } else if (!filas || filas.length === 0) { %>
+  <div class="card" style="text-align:center; padding:42px 20px;">
+    <h3>No hay datos para este reporte</h3>
+    <p style="color:var(--text-secondary); margin:0;">No se encontraron registros que coincidan con los filtros aplicados.</p>
+  </div>
+<% } else { %>
+  <%
+    function linkOrdenColumna(colKey) {
+      const p = new URLSearchParams();
+      Object.keys(filtros || {}).forEach(k => {
+        if (filtros[k] !== undefined && filtros[k] !== '') p.set(k, filtros[k]);
+      });
+      const nuevaDir = (filtros.orden === colKey && filtros.dir === 'DESC') ? 'ASC' : 'DESC';
+      p.set('orden', colKey);
+      p.set('dir', nuevaDir);
+      p.set('pagina', 1);
+      return `/admin/reportes/${reporte.slug}?` + p.toString();
+    }
+  %>
+  <div style="margin-bottom:10px; font-size:0.88rem; color:var(--text-secondary);">
+    Total de resultados encontrados: <strong><%= paginacion.totalRegistros %></strong>
+  </div>
+
+  <div class="table-responsive">
+    <table>
+      <thead>
+        <tr>
+          <% columnas.forEach(col => { %>
+            <th>
+              <% if (col.ordenable) { %>
+                <a href="<%= linkOrdenColumna(col.ordenable) %>" style="color:#fff; text-decoration:none; display:inline-flex; align-items:center; gap:5px;">
+                  <span><%= col.etiqueta %></span>
+                  <% if (filtros.orden === col.ordenable) { %>
+                    <span><%= filtros.dir === 'ASC' ? '▲' : '▼' %></span>
+                  <% } else { %>
+                    <span style="opacity:0.4;">⇅</span>
+                  <% } %>
+                </a>
+              <% } else { %>
+                <%= col.etiqueta %>
+              <% } %>
+            </th>
+          <% }) %>
+        </tr>
+      </thead>
+      <tbody>
+        <% filas.forEach(fila => { %>
+          <tr>
+            <% columnas.forEach(col => { %>
+              <% const val = fila[col.campo]; %>
+              <td>
+                <% if (col.esProductoConEstado) { %>
+                  <strong><%= val %></strong>
+                  <% if (fila.estado === 0 || fila.estado === false) { %>
+                    <span class="badge badge-danger" style="margin-left:6px;">Dado de baja</span>
+                  <% } %>
+                <% } else if (col.formato === 'cop') { %>
+                  <%= formatoCOP(val) %>
+                <% } else if (col.formato === 'balance_cop') { %>
+                  <strong style="color:<%= Number(val) >= 0 ? 'var(--success-text)' : 'var(--danger-text)' %>;">
+                    <%= formatoCOP(val) %>
+                  </strong>
+                <% } else if (col.formato === 'fecha') { %>
+                  <%= val ? new Date(val).toLocaleDateString('es-CO') : '—' %>
+                <% } else if (col.formato === 'puntos') { %>
+                  <strong style="color:var(--accent);"><%= Number(val || 0).toLocaleString('es-CO') %> pts</strong>
+                  <br><small style="color:var(--success-text);"><%= formatoCOP(Number(val || 0) * configPuntos.valorPuntoCop) %></small>
+                <% } else if (col.formato === 'stock_critico') { %>
+                  <strong style="color:var(--danger-text);"><%= val %> unids.</strong>
+                <% } else if (col.formato === 'badge') { %>
+                  <span class="badge-estado <%= String(val || '').toLowerCase().replace(/\s+/g, '-') %>"><%= val %></span>
+                <% } else if (col.formato === 'link_puntos') { %>
+                  <a href="/admin/puntos/<%= val %>" class="btn-sm">Ver Movimientos / Ajustar</a>
+                <% } else { %>
+                  <%= val !== null && val !== undefined ? val : '—' %>
+                <% } %>
+              </td>
+            <% }) %>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+
+  <%- include('./partials/_paginacion') %>
+<% } %>
+
+<%- include('../../partials/footer') %>

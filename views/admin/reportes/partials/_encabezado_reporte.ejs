@@ -1,0 +1,34 @@
+<%
+  const paramsCSV = new URLSearchParams();
+  Object.keys(filtros || {}).forEach(k => {
+    if (k !== 'pagina' && k !== 'limite' && filtros[k] !== undefined && filtros[k] !== '') {
+      paramsCSV.set(k, filtros[k]);
+    }
+  });
+  const urlCSV = `/admin/reportes/${reporte.slug}/exportar.csv` + (paramsCSV.toString() ? '?' + paramsCSV.toString() : '');
+  const badgeClase = reporte.tipo === 'General' ? 'badge-success' : (reporte.tipo === 'Específica' ? 'badge-info' : 'badge-warning');
+%>
+
+<div style="margin-bottom: 18px;">
+  <nav aria-label="Breadcrumb" style="font-size:0.86rem; color:var(--text-muted); margin-bottom:10px;">
+    <a href="/admin/reportes" style="color:var(--accent); text-decoration:none; font-weight:600;">Centro de Reportes</a>
+    <span> &rsaquo; </span>
+    <span><%= reporte.seccion %></span>
+    <span> &rsaquo; </span>
+    <strong style="color:var(--text-primary);"><%= reporte.titulo %></strong>
+  </nav>
+
+  <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px;">
+    <div>
+      <span class="badge <%= badgeClase %>" style="margin-bottom:6px;"><%= reporte.tipo %></span>
+      <h2 style="margin:0 0 4px 0;"><%= reporte.titulo %></h2>
+      <p style="margin:0; color:var(--text-secondary); font-size:0.92rem;"><%= reporte.descripcion %></p>
+    </div>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <a href="/admin/reportes" class="btn-sm" style="padding:9px 14px;">← Volver al centro de reportes</a>
+      <% if (!esperandoSeleccion && filas && filas.length > 0) { %>
+        <a href="<%= urlCSV %>" class="btn-accent" style="padding:9px 16px; font-size:0.86rem;">⬇ Exportar CSV</a>
+      <% } %>
+    </div>
+  </div>
+</div>

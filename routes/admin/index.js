@@ -7,19 +7,22 @@ const router = express.Router();
 const AdminController = require('../../controllers/adminController');
 const CompraEntregaController = require('../../controllers/compraEntregaController');
 const ReporteController = require('../../controllers/reporteController');
+const reportesRoutes = require('./reportes');
 const { requiereLogin } = require('../../middlewares/auth');
 const { requiereRol } = require('../../middlewares/roles');
 
-// Todas las rutas requieren rol Administrador
 router.use(requiereLogin, requiereRol('Administrador'));
 
 // Dashboard general
 router.get('/dashboard', AdminController.dashboard);
 
-// CU02.1 Inventario estacional
+// CU02.1 Inventario estacional + Actualización 2 (Baja lógica, Reactivación y Eliminación definitiva)
 router.get('/inventario', AdminController.vistaInventario);
 router.post('/inventario/producto/crear', AdminController.crearProducto);
 router.post('/inventario/producto/actualizar', AdminController.actualizarProducto);
+router.post('/inventario/producto/baja', AdminController.darDeBajaProducto);
+router.post('/inventario/producto/reactivar', AdminController.reactivarProducto);
+router.post('/inventario/producto/eliminar', AdminController.eliminarProductoDefinitivamente);
 router.post('/inventario/stock', AdminController.asignarStock);
 router.post('/inventario/auxiliar', AdminController.crearCatalogoAuxiliar);
 
@@ -57,8 +60,13 @@ router.post('/pedidos/cancelar', CompraEntregaController.cancelarPedido);
 router.get('/compras', CompraEntregaController.vistaCompras);
 router.post('/compras/registrar', CompraEntregaController.registrarCompra);
 
-// CU02.4 Consultas, CU02.8 Reportes y AJUSTE 4.7 Auditoría/Ajuste de Puntos
-router.get('/consultas', ReporteController.panelConsultasYReportes);
+// ACTUALIZACIÓN 1: Nuevo Centro de Reportes Independientes
+router.use('/reportes', reportesRoutes);
+
+// Redirección limpia de la ruta antigua /admin/consultas al nuevo Centro de Reportes
+router.get('/consultas', (req, res) => res.redirect('/admin/reportes'));
+
+// Auditoría y ajuste manual de puntos por cliente
 router.get('/puntos/:id', ReporteController.verMovimientosCliente);
 router.post('/puntos/ajustar', ReporteController.ajustarPuntosCliente);
 

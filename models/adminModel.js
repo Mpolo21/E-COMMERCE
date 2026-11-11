@@ -1,6 +1,6 @@
 /**
  * Archivo: models/adminModel.js
- * Propósito: Consultas SQL del Backoffice Administrador (CU02.1, CU02.2, CU02.5, CU02.6, CU02.7).
+ * Propósito: Consultas SQL del Backoffice Administrador (CU02.1, CU02.2, CU02.5, CU02.6, CU02.7 y Actualización 2).
  */
 const { pool } = require('../config/db');
 
@@ -9,38 +9,98 @@ class AdminModel {
   // RESUMEN DASHBOARD
   // ==========================================
   static async obtenerResumenDashboard() {
-    const [[{ total_productos }]] = await pool.query('SELECT COUNT(*) AS total_productos FROM productos');
+    const [[{ total_productos }]] = await pool.query('SELECT COUNT(*) AS total_productos FROM productos WHERE estado = TRUE');
+    const [[{ productos_baja }]] = await pool.query('SELECT COUNT(*) AS productos_baja FROM productos WHERE estado = FALSE');
     const [[{ total_clientes }]] = await pool.query('SELECT COUNT(*) AS total_clientes FROM usuarios WHERE id_rol = 2');
-    const [[{ pedidos_pendientes }]] = await pool.query("SELECT COUNT(*) AS pedidos_pendientes FROM entregas WHERE estado_entrega != 'Entregado'");
-    const [[{ ventas_totales }]] = await pool.query("SELECT COALESCE(SUM(total), 0) AS ventas_totales FROM pedidos WHERE estado_pedido = 'Pagado'");
-    return { total_productos, total_clientes, pedidos_pendientes, ventas_totales };
+    const [[{ pedidos_pendientes }]] = await pool.query(
+      "SELECT COUNT(*) AS pedidos_pendientes FROM entregas e JOIN pedidos p ON e.id_pedido = p.id_pedido WHERE e.estado_entrega != 'Entregado' AND p.estado_pedido != 'Cancelado'"
+    );
+    const [[{ ventas_totales }]] = await pool.query(
+      "SELECT COALESCE(SUM(total), 0) AS ventas_totales FROM pedidos WHERE estado_pedido = 'Pagado'"
+    );
+    return { total_productos, productos_baja, total_clientes, pedidos_pendientes, ventas_totales };
   }
 
   // ==========================================
-  // CU02.1 INVENTARIO ESTACIONAL Y CATÁLOGOS
+  // CU02.1 INVENTARIO ESTACIONAL Y BAJA DE PRODUCTOS (Actualización 2)
   // ==========================================
-  static async obtenerDatosInventario() {
-    const [productos] = await pool.query(`
-      SELECT p.*, c.nombre_categoria, m.nombre_marca, t.nombre_temporada, pr.nombre_proveedor,
-             COALESCE(SUM(i.cantidad_stock), 0) AS stock_total
-      FROM productos p
-      JOIN categorias c ON p.id_categoria = c.id_categoria
-      JOIN marcas m ON p.id_marca = m.id_marca
-      JOIN temporadas t ON p.id_temporada = t.id_temporada
-      JOIN proveedores pr ON p.id_proveedor = pr.id_proveedor
-      LEFT JOIN inventario i ON p.id_producto = i.id_producto
-      GROUP BY p.id_producto
-      ORDER BY p.prioridad_visual DESC, p.id_producto DESC
-    `);
+  static async obtenerDatosInventario({ estadoFiltro = 'activos', busqueda = '', pagina = 1, limite = 15 } = {}) {
+    const offset = (pagina - 1) * limite;
+    const whereClauses = [];
+    const params = [];
 
-    const [inventarioDetalle] = await pool.query(`
-      SELECT i.*, p.nombre_producto, t.nombre_talla, col.nombre_color
-      FROM inventario i
-      JOIN productos p ON i.id_producto = p.id_producto
-      JOIN tallas t ON i.id_talla = t.id_talla
-      JOIN colores col ON i.id_color = col.id_color
-      ORDER BY p.nombre_producto ASC, t.id_talla ASC
-    `);
+    if (estadoFiltro === 'activos') {
+      whereClauses.push('p.estado = TRUE');
+    } else if (estadoFiltro === 'baja') {
+      whereClauses.push('p.estado = FALSE');
+    }
+
+    if (busqueda && busqueda.trim()) {
+      whereClauses.push('(p.nombre_producto LIKE ? OR m.nombre_marca LIKE ? OR c.nombre_categoria LIKE ?)');
+      const term = `%${busqueda.trim()}%`;
+      params.push(term, term, term);
+    }
+
+    const whereSQL = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+
+    // Total de productos para la paginación
+    const [countRows] = await pool.query(
+      `SELECT COUNT(*) AS total
+       FROM productos p
+       JOIN categorias c ON p.id_categoria = c.id_categoria
+       JOIN marcas m ON p.id_marca = m.id_marca
+       ${whereSQL}`,
+      params
+    );
+    const totalRegistros = countRows[0].total;
+    const totalPaginas = Math.max(1, Math.ceil(totalRegistros / limite));
+
+    // Consulta paginada con conteo de stock, historial (pedidos + compras) y entregas pendientes
+    const [productos] = await pool.query(
+      `SELECT p.*, c.nombre_categoria, m.nombre_marca, t.nombre_temporada, pr.nombre_proveedor,
+              COALESCE(inv.stock_total, 0) AS stock_total,
+              COALESCE(hist_ped.cant_pedidos, 0) AS total_pedidos_historicos,
+              COALESCE(hist_comp.cant_compras, 0) AS total_compras_historicas,
+              (COALESCE(hist_ped.cant_pedidos, 0) + COALESCE(hist_comp.cant_compras, 0)) AS total_movimientos_historicos,
+              COALESCE(pend.pedidos_pendientes, 0) AS pedidos_pendientes_entrega
+       FROM productos p
+       JOIN categorias c ON p.id_categoria = c.id_categoria
+       JOIN marcas m ON p.id_marca = m.id_marca
+       JOIN temporadas t ON p.id_temporada = t.id_temporada
+       JOIN proveedores pr ON p.id_proveedor = pr.id_proveedor
+       LEFT JOIN (
+         SELECT id_producto, SUM(cantidad_stock) AS stock_total
+         FROM inventario
+         GROUP BY id_producto
+       ) inv ON p.id_producto = inv.id_producto
+       LEFT JOIN (
+         SELECT id_producto, COUNT(*) AS cant_pedidos
+         FROM detalles_pedido
+         GROUP BY id_producto
+       ) hist_ped ON p.id_producto = hist_ped.id_producto
+       LEFT JOIN (
+         SELECT id_producto, COUNT(*) AS cant_compras
+         FROM detalles_compra
+         GROUP BY id_producto
+       ) hist_comp ON p.id_producto = hist_comp.id_producto
+       LEFT JOIN (
+         SELECT dp.id_producto, COUNT(DISTINCT pe.id_pedido) AS pedidos_pendientes
+         FROM detalles_pedido dp
+         JOIN pedidos pe ON dp.id_pedido = pe.id_pedido
+         LEFT JOIN entregas en ON pe.id_pedido = en.id_pedido
+         WHERE pe.estado_pedido != 'Cancelado' AND (en.estado_entrega IS NULL OR en.estado_entrega != 'Entregado')
+         GROUP BY dp.id_producto
+       ) pend ON p.id_producto = pend.id_producto
+       ${whereSQL}
+       ORDER BY p.prioridad_visual DESC, p.id_producto DESC
+       LIMIT ? OFFSET ?`,
+      [...params, Number(limite), Number(offset)]
+    );
+
+    // Lista ligera de productos activos para el selector de asignación rápida de stock
+    const [productosSelectorStock] = await pool.query(
+      'SELECT id_producto, nombre_producto, estado FROM productos WHERE estado = TRUE ORDER BY nombre_producto ASC'
+    );
 
     const [categorias] = await pool.query('SELECT * FROM categorias ORDER BY nombre_categoria');
     const [marcas] = await pool.query('SELECT * FROM marcas ORDER BY nombre_marca');
@@ -49,7 +109,22 @@ class AdminModel {
     const [tallas] = await pool.query('SELECT * FROM tallas ORDER BY id_talla');
     const [colores] = await pool.query('SELECT * FROM colores ORDER BY nombre_color');
 
-    return { productos, inventarioDetalle, categorias, marcas, temporadas, proveedores, tallas, colores };
+    return {
+      productos,
+      productosSelectorStock,
+      categorias,
+      marcas,
+      temporadas,
+      proveedores,
+      tallas,
+      colores,
+      paginacion: {
+        paginaActual: Number(pagina),
+        limite: Number(limite),
+        totalRegistros,
+        totalPaginas
+      }
+    };
   }
 
   static async crearProducto(datos) {
@@ -62,17 +137,98 @@ class AdminModel {
   }
 
   static async actualizarProducto(datos) {
-    const { id_producto, nombre_producto, precio, id_temporada, prioridad_visual, estado } = datos;
+    const { id_producto, nombre_producto, precio, id_temporada, prioridad_visual } = datos;
     await pool.query(
       `UPDATE productos 
-       SET nombre_producto = ?, precio = ?, id_temporada = ?, prioridad_visual = ?, estado = ?
+       SET nombre_producto = ?, precio = ?, id_temporada = ?, prioridad_visual = ?
        WHERE id_producto = ?`,
-      [nombre_producto, precio, id_temporada, prioridad_visual, estado === '1', id_producto]
+      [nombre_producto, precio, id_temporada, prioridad_visual, id_producto]
     );
   }
 
+  // Actualización 2.1.1: Dar de baja (baja lógica conservando stock e historial)
+  static async darDeBajaProducto(id_producto, motivo_baja) {
+    const [rows] = await pool.query('SELECT id_producto, nombre_producto, estado FROM productos WHERE id_producto = ?', [id_producto]);
+    if (rows.length === 0) {
+      throw new Error('El producto especificado no existe.');
+    }
+    if (!rows[0].estado) {
+      throw new Error(`El producto "${rows[0].nombre_producto}" ya se encuentra dado de baja.`);
+    }
+
+    const motivoLimpio = motivo_baja && motivo_baja.trim() ? motivo_baja.trim() : 'Dado de baja por el administrador';
+    await pool.query(
+      `UPDATE productos 
+       SET estado = FALSE, fecha_baja = NOW(), motivo_baja = ?
+       WHERE id_producto = ?`,
+      [motivoLimpio, id_producto]
+    );
+    return rows[0].nombre_producto;
+  }
+
+  // Actualización 2.3: Reactivar producto dado de baja (limpia fecha_baja y motivo_baja)
+  static async reactivarProducto(id_producto) {
+    const [rows] = await pool.query('SELECT id_producto, nombre_producto, estado FROM productos WHERE id_producto = ?', [id_producto]);
+    if (rows.length === 0) {
+      throw new Error('El producto especificado no existe.');
+    }
+
+    await pool.query(
+      `UPDATE productos 
+       SET estado = TRUE, fecha_baja = NULL, motivo_baja = NULL
+       WHERE id_producto = ?`,
+      [id_producto]
+    );
+    return rows[0].nombre_producto;
+  }
+
+  // Actualización 2.1.2: Eliminar definitivamente (SOLO si no tiene historial en detalles_pedido ni detalles_compra)
+  static async eliminarProductoDefinitivamente(id_producto) {
+    const connection = await pool.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      const [prodRows] = await connection.query(
+        'SELECT id_producto, nombre_producto FROM productos WHERE id_producto = ? FOR UPDATE',
+        [id_producto]
+      );
+      if (prodRows.length === 0) {
+        throw new Error('El producto que intentas eliminar no existe.');
+      }
+      const nombreProducto = prodRows[0].nombre_producto;
+
+      const [[{ cantPedidos }]] = await connection.query(
+        'SELECT COUNT(*) AS cantPedidos FROM detalles_pedido WHERE id_producto = ?',
+        [id_producto]
+      );
+      const [[{ cantCompras }]] = await connection.query(
+        'SELECT COUNT(*) AS cantCompras FROM detalles_compra WHERE id_producto = ?',
+        [id_producto]
+      );
+
+      if (cantPedidos > 0 || cantCompras > 0) {
+        throw new Error(
+          `No se puede eliminar definitivamente "${nombreProducto}" porque tiene historial (${cantPedidos} venta(s) y ${cantCompras} compra(s) asociadas). Utiliza la opción "Dar de baja".`
+        );
+      }
+
+      // 1. Borrar sus filas de inventario
+      await connection.query('DELETE FROM inventario WHERE id_producto = ?', [id_producto]);
+
+      // 2. Borrar el producto
+      await connection.query('DELETE FROM productos WHERE id_producto = ?', [id_producto]);
+
+      await connection.commit();
+      connection.release();
+      return nombreProducto;
+    } catch (error) {
+      await connection.rollback();
+      connection.release();
+      throw error;
+    }
+  }
+
   static async guardarStock({ id_producto, id_talla, id_color, cantidad_stock }) {
-    // Usa la restricción UNIQUE (id_producto, id_talla, id_color) creada en migraciones.sql
     await pool.query(
       `INSERT INTO inventario (id_producto, id_talla, id_color, cantidad_stock)
        VALUES (?, ?, ?, ?)
@@ -118,7 +274,9 @@ class AdminModel {
   // ==========================================
   static async listarProveedoresConProductos() {
     const [proveedores] = await pool.query('SELECT * FROM proveedores ORDER BY id_proveedor ASC');
-    const [productos] = await pool.query('SELECT id_producto, nombre_producto, id_proveedor, costo_promedio_ponderado FROM productos');
+    const [productos] = await pool.query(
+      'SELECT id_producto, nombre_producto, id_proveedor, costo_promedio_ponderado, estado FROM productos'
+    );
     return { proveedores, productos };
   }
 

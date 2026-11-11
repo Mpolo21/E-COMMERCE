@@ -1,59 +1,59 @@
 <%- include('../partials/header') %>
 
-<div class="container" style="max-width: 1100px; margin-top: 20px;">
+<div style="max-width: 1140px; margin: 0 auto;">
   <!-- Encabezado Corporativo del Proveedor -->
-  <div style="background: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 25px; border-left: 5px solid #2563eb;">
+  <div class="card" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 28px; border-left: 5px solid var(--accent);">
     <div>
       <span class="badge-marca">Módulo CU03 - Solo Lectura</span>
       <h2 style="margin: 8px 0 5px 0;"><%= proveedor.nombre_proveedor %></h2>
-      <p style="margin: 2px 0; color: #475569;">
+      <p style="margin: 2px 0; color: var(--text-secondary);">
         <strong>Teléfono:</strong> <%= proveedor.telefono || 'No registrado' %> |
         <strong>Correo Corporativo:</strong> <%= proveedor.correo || 'No registrado' %>
       </p>
     </div>
     <div style="display: flex; gap: 15px; flex-wrap: wrap;">
-      <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 15px 20px; border-radius: 8px; text-align: center;">
-        <small style="color: #64748b;">Prendas Suministradas</small>
-        <h3 style="margin: 5px 0 0 0; font-size: 1.6rem; color: #1e293b;"><%= productosSuministrados.length %></h3>
+      <div class="kpi-card" style="padding: 14px 20px; text-align: center; min-width: 160px;">
+        <span class="kpi-label">Prendas Suministradas</span>
+        <div class="kpi-value" style="font-size: 1.7rem; margin: 4px 0 0 0;"><%= productosSuministrados.length %></div>
       </div>
-      <div style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 15px 20px; border-radius: 8px; text-align: center;">
-        <small style="color: #166534;">Órdenes de Compra</small>
-        <h3 style="margin: 5px 0 0 0; font-size: 1.6rem; color: #15803d;"><%= comprasRealizadas.length %></h3>
+      <div class="kpi-card" style="padding: 14px 20px; text-align: center; min-width: 160px; background: var(--accent-soft);">
+        <span class="kpi-label">Órdenes de Compra</span>
+        <div class="kpi-value" style="font-size: 1.7rem; margin: 4px 0 0 0; color: var(--accent);"><%= comprasRealizadas.length %></div>
       </div>
     </div>
   </div>
 
   <!-- 1. Productos que suministra a la empresa -->
-  <div style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 25px;">
+  <div class="card" style="margin-bottom: 28px;">
     <h3>1. Productos que Suministra a la Tienda</h3>
     <% if (productosSuministrados.length === 0) { %>
-      <p style="color: #64748b;">Aún no tienes productos vinculados en el catálogo.</p>
+      <p style="color: var(--text-secondary);">Aún no tienes productos vinculados en el catálogo.</p>
     <% } else { %>
-      <div style="overflow-x: auto;">
-        <table style="width: 100%; border-collapse: collapse;">
+      <div class="table-responsive">
+        <table>
           <thead>
-            <tr style="background: #1e293b; color: #fff; text-align: left;">
-              <th style="padding: 10px;">ID</th>
-              <th style="padding: 10px;">Producto</th>
-              <th style="padding: 10px;">Categoría / Marca</th>
-              <th style="padding: 10px;">Temporada</th>
-              <th style="padding: 10px;">Costo Promedio</th>
-              <th style="padding: 10px;">Stock Actual en Tienda</th>
-              <th style="padding: 10px;">Estado Catálogo</th>
+            <tr>
+              <th>ID</th>
+              <th>Producto</th>
+              <th>Categoría / Marca</th>
+              <th>Temporada</th>
+              <th>Costo Promedio</th>
+              <th>Stock Actual en Tienda</th>
+              <th>Estado en Catálogo</th>
             </tr>
           </thead>
           <tbody>
             <% productosSuministrados.forEach(p => { %>
               <% const estadoClase = p.estado ? 'pagado' : 'cancelado'; %>
-              <% const estadoTexto = p.estado ? 'Activo' : 'Inactivo'; %>
-              <tr style="border-bottom: 1px solid #e2e8f0;">
-                <td style="padding: 10px;">#<%= p.id_producto %></td>
-                <td style="padding: 10px;"><strong><%= p.nombre_producto %></strong></td>
-                <td style="padding: 10px;"><%= p.nombre_categoria %> — <%= p.nombre_marca %></td>
-                <td style="padding: 10px;"><%= p.nombre_temporada %></td>
-                <td style="padding: 10px;">$ <%= Number(p.costo_promedio_ponderado).toLocaleString('es-CO') %></td>
-                <td style="padding: 10px; font-weight: bold;"><%= p.stock_actual_tienda %> unids.</td>
-                <td style="padding: 10px;">
+              <% const estadoTexto = p.estado ? 'Activo' : 'Dado de baja'; %>
+              <tr style="<%= !p.estado ? 'background:#fef2f2;' : '' %>">
+                <td><strong>#<%= p.id_producto %></strong></td>
+                <td><strong><%= p.nombre_producto %></strong></td>
+                <td><%= p.nombre_categoria %> — <%= p.nombre_marca %></td>
+                <td><%= p.nombre_temporada %></td>
+                <td><%= formatoCOP(p.costo_promedio_ponderado) %></td>
+                <td style="font-weight: bold;"><%= p.stock_actual_tienda %> unids.</td>
+                <td>
                   <span class="badge-estado <%= estadoClase %>"><%= estadoTexto %></span>
                 </td>
               </tr>
@@ -65,33 +65,33 @@
   </div>
 
   <!-- 2. Órdenes de Compra realizadas por la empresa y estado -->
-  <div style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 25px;">
+  <div class="card" style="margin-bottom: 28px;">
     <h3>2. Compras Realizadas por la Empresa y Estado de Órdenes</h3>
     <% if (comprasRealizadas.length === 0) { %>
-      <p style="color: #64748b;">La tienda aún no registra órdenes de compra para tu empresa.</p>
+      <p style="color: var(--text-secondary);">La tienda aún no registra órdenes de compra para tu empresa.</p>
     <% } else { %>
-      <div style="overflow-x: auto;">
-        <table style="width: 100%; border-collapse: collapse;">
+      <div class="table-responsive">
+        <table>
           <thead>
-            <tr style="background: #1e293b; color: #fff; text-align: left;">
-              <th style="padding: 10px;">Orden de Compra</th>
-              <th style="padding: 10px;">Fecha Solicitud</th>
-              <th style="padding: 10px;">Referencias</th>
-              <th style="padding: 10px;">Total Unidades Solicitadas</th>
-              <th style="padding: 10px;">Valor Total Orden</th>
-              <th style="padding: 10px;">Estado de la Compra</th>
+            <tr>
+              <th>Orden de Compra</th>
+              <th>Fecha Solicitud</th>
+              <th>Referencias</th>
+              <th>Total Unidades Solicitadas</th>
+              <th>Valor Total Orden</th>
+              <th>Estado de la Compra</th>
             </tr>
           </thead>
           <tbody>
             <% comprasRealizadas.forEach(c => { %>
               <% const claseCompra = c.estado_compra === 'Recibida' ? 'pagado' : (c.estado_compra === 'Solicitada' ? 'pendiente' : 'cancelado'); %>
-              <tr style="border-bottom: 1px solid #e2e8f0;">
-                <td style="padding: 10px; font-weight: bold;">#<%= c.id_compra %></td>
-                <td style="padding: 10px;"><%= new Date(c.fecha_compra).toLocaleString() %></td>
-                <td style="padding: 10px;"><%= c.referencias_incluidas %> ítem(s)</td>
-                <td style="padding: 10px; font-weight: bold;"><%= c.total_unidades_solicitadas %> unids.</td>
-                <td style="padding: 10px; font-weight: bold; color: #16a34a;">$ <%= Number(c.total_compra).toLocaleString('es-CO') %></td>
-                <td style="padding: 10px;">
+              <tr>
+                <td><strong>#<%= c.id_compra %></strong></td>
+                <td><%= new Date(c.fecha_compra).toLocaleString('es-CO') %></td>
+                <td><%= c.referencias_incluidas %> ítem(s)</td>
+                <td style="font-weight: bold;"><%= c.total_unidades_solicitadas %> unids.</td>
+                <td style="font-weight: bold; color: var(--success-text);"><%= formatoCOP(c.total_compra) %></td>
+                <td>
                   <span class="badge-estado <%= claseCompra %>"><%= c.estado_compra %></span>
                 </td>
               </tr>
@@ -103,36 +103,38 @@
   </div>
 
   <!-- 3. Historial detallado de suministros (cantidades por talla y color) -->
-  <div style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+  <div class="card">
     <h3>3. Historial Detallado de Suministros y Cantidades Solicitadas</h3>
     <% if (historialSuministros.length === 0) { %>
-      <p style="color: #64748b;">No hay detalles de suministros registrados.</p>
+      <p style="color: var(--text-secondary);">No hay detalles de suministros registrados.</p>
     <% } else { %>
-      <div style="overflow-x: auto;">
-        <table style="width: 100%; border-collapse: collapse;">
+      <div class="table-responsive">
+        <table>
           <thead>
-            <tr style="background: #334155; color: #fff; text-align: left;">
-              <th style="padding: 10px;">Orden #</th>
-              <th style="padding: 10px;">Fecha</th>
-              <th style="padding: 10px;">Producto Suministrado</th>
-              <th style="padding: 10px;">Talla / Color</th>
-              <th style="padding: 10px;">Cant. Solicitada</th>
-              <th style="padding: 10px;">Precio Compra Unitario</th>
-              <th style="padding: 10px;">Subtotal</th>
-              <th style="padding: 10px;">Estado</th>
+            <tr>
+              <th>Orden #</th>
+              <th>Fecha</th>
+              <th>Producto Suministrado</th>
+              <th>Talla / Color</th>
+              <th>Cant. Solicitada</th>
+              <th>Precio Compra Unitario</th>
+              <th>Subtotal</th>
+              <th>Estado</th>
             </tr>
           </thead>
           <tbody>
             <% historialSuministros.forEach(h => { %>
-              <tr style="border-bottom: 1px solid #e2e8f0;">
-                <td style="padding: 10px;">#<%= h.id_compra %></td>
-                <td style="padding: 10px;"><%= new Date(h.fecha_compra).toLocaleDateString() %></td>
-                <td style="padding: 10px;"><strong><%= h.nombre_producto %></strong></td>
-                <td style="padding: 10px;">Talla: <%= h.nombre_talla %> / Color: <%= h.nombre_color %></td>
-                <td style="padding: 10px; font-weight: bold;"><%= h.cantidad_solicitada %> unids.</td>
-                <td style="padding: 10px;">$ <%= Number(h.precio_compra_unitario).toLocaleString('es-CO') %></td>
-                <td style="padding: 10px; font-weight: bold; color: #16a34a;">$ <%= Number(h.subtotal_suministro).toLocaleString('es-CO') %></td>
-                <td style="padding: 10px;"><%= h.estado_compra %></td>
+              <tr>
+                <td><strong>#<%= h.id_compra %></strong></td>
+                <td><%= new Date(h.fecha_compra).toLocaleDateString('es-CO') %></td>
+                <td><strong><%= h.nombre_producto %></strong></td>
+                <td>Talla: <%= h.nombre_talla %> / Color: <%= h.nombre_color %></td>
+                <td style="font-weight: bold;"><%= h.cantidad_solicitada %> unids.</td>
+                <td><%= formatoCOP(h.precio_compra_unitario) %></td>
+                <td style="font-weight: bold; color: var(--success-text);"><%= formatoCOP(h.subtotal_suministro) %></td>
+                <td>
+                  <span class="badge-estado <%= h.estado_compra === 'Recibida' ? 'pagado' : 'pendiente' %>"><%= h.estado_compra %></span>
+                </td>
               </tr>
             <% }) %>
           </tbody>

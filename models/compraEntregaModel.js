@@ -1,6 +1,6 @@
 /**
  * Archivo: models/compraEntregaModel.js
- * Propósito: Gestión de Entregas, Pagos Contraentrega (Ajuste 1), Cancelaciones (Ajuste 4.5) y Compras CPP.
+ * Propósito: Gestión de Entregas, Pagos Contraentrega (Ajuste 1), Cancelaciones (Ajuste 4.5) y Compras CPP (Actualización 2.4).
  */
 const { pool } = require('../config/db');
 const PuntosService = require('../services/puntosService');
@@ -105,13 +105,11 @@ class CompraEntregaModel {
         throw new Error(`No se puede marcar como pagado un pedido en estado "${pedido.estado_pedido}".`);
       }
 
-      // 1. Actualizar estado a Pagado
       await connection.query(
         "UPDATE pedidos SET estado_pedido = 'Pagado' WHERE id_pedido = ?",
         [id_pedido]
       );
 
-      // 2. Otorgar puntos de fidelización sobre el total efectivamente cobrado (Ajustes 1.4 y 4.4)
       const puntosOtorgados = await PuntosService.otorgarPuntos(
         connection,
         pedido.id_cliente,
@@ -151,7 +149,6 @@ class CompraEntregaModel {
         throw new Error('Este pedido ya se encuentra cancelado.');
       }
 
-      // 1. Reponer stock al inventario
       const [detalles] = await connection.query(
         'SELECT id_producto, id_talla, id_color, cantidad FROM detalles_pedido WHERE id_pedido = ?',
         [id_pedido]
@@ -165,13 +162,9 @@ class CompraEntregaModel {
         );
       }
 
-      // 2. Devolver puntos canjeados (si usó puntos en el checkout)
       const puntosDevueltos = await PuntosService.devolverPuntos(connection, id_pedido);
-
-      // 3. Revertir puntos ganados (si ya habían sido otorgados, sin dejar saldo negativo)
       const puntosRevertidos = await PuntosService.revertirPuntosGanados(connection, id_pedido);
 
-      // 4. Actualizar estado del pedido
       await connection.query(
         "UPDATE pedidos SET estado_pedido = 'Cancelado' WHERE id_pedido = ?",
         [id_pedido]
@@ -189,11 +182,14 @@ class CompraEntregaModel {
   }
 
   // ==========================================
-  // COMPRAS A PROVEEDORES Y C.P.P.
+  // COMPRAS A PROVEEDORES Y C.P.P. (Actualización 2.4)
   // ==========================================
   static async obtenerCatalogosParaCompra() {
     const [proveedores] = await pool.query('SELECT * FROM proveedores ORDER BY nombre_proveedor');
-    const [productos] = await pool.query('SELECT id_producto, nombre_producto, costo_promedio_ponderado FROM productos ORDER BY nombre_producto');
+    // Solo listar productos activos (estado = TRUE) para compras nuevas
+    const [productos] = await pool.query(
+      'SELECT id_producto, nombre_producto, costo_promedio_ponderado FROM productos WHERE estado = TRUE ORDER BY nombre_producto'
+    );
     const [tallas] = await pool.query('SELECT * FROM tallas');
     const [colores] = await pool.query('SELECT * FROM colores');
     return { proveedores, productos, tallas, colores };
@@ -203,6 +199,16 @@ class CompraEntregaModel {
     const connection = await pool.getConnection();
     try {
       await connection.beginTransaction();
+
+      // Validar que el producto exista y esté activo (no dado de baja)
+      const [prodResult] = await connection.query(
+        'SELECT id_producto, nombre_producto, estado, costo_promedio_ponderado FROM productos WHERE id_producto = ? FOR UPDATE',
+        [id_producto]
+      );
+
+      if (prodResult.length === 0 || !prodResult[0].estado) {
+        throw new Error('No se puede registrar una compra de un producto que no existe o se encuentra dado de baja.');
+      }
 
       const total_compra = parseFloat(cantidad) * parseFloat(precio_compra_unitario);
 
@@ -223,11 +229,6 @@ class CompraEntregaModel {
         [id_producto]
       );
       const stock_actual = parseFloat(stockResult[0].stock_total);
-
-      const [prodResult] = await connection.query(
-        'SELECT costo_promedio_ponderado FROM productos WHERE id_producto = ?',
-        [id_producto]
-      );
       const costo_actual = parseFloat(prodResult[0].costo_promedio_ponderado || 0);
 
       const cant_compra = parseFloat(cantidad);

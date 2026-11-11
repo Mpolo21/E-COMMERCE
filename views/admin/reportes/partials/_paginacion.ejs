@@ -1,0 +1,34 @@
+<% if (!esperandoSeleccion && paginacion && paginacion.totalPaginas > 1) { %>
+  <%
+    function urlConPagina(numPag) {
+      const p = new URLSearchParams();
+      Object.keys(filtros || {}).forEach(k => {
+        if (filtros[k] !== undefined && filtros[k] !== '') p.set(k, filtros[k]);
+      });
+      p.set('pagina', numPag);
+      return `/admin/reportes/${reporte.slug}?` + p.toString();
+    }
+  %>
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-top:18px; flex-wrap:wrap; gap:10px;">
+    <span style="font-size:0.88rem; color:var(--text-secondary);">
+      Mostrando página <strong><%= paginacion.paginaActual %></strong> de <strong><%= paginacion.totalPaginas %></strong>
+      — Total: <strong><%= paginacion.totalRegistros %></strong> registro(s)
+    </span>
+    <div style="display:flex; gap:6px; flex-wrap:wrap;">
+      <% if (paginacion.paginaActual > 1) { %>
+        <a href="<%= urlConPagina(paginacion.paginaActual - 1) %>" class="btn-sm">&laquo; Anterior</a>
+      <% } %>
+      <% for (let i = 1; i <= paginacion.totalPaginas; i++) { %>
+        <% if (i === 1 || i === paginacion.totalPaginas || Math.abs(i - paginacion.paginaActual) <= 2) { %>
+          <a href="<%= urlConPagina(i) %>" class="btn-sm"
+             style="<%= i === paginacion.paginaActual ? 'background:var(--bg-dark); color:#fff;' : '' %>">
+            <%= i %>
+          </a>
+        <% } %>
+      <% } %>
+      <% if (paginacion.paginaActual < paginacion.totalPaginas) { %>
+        <a href="<%= urlConPagina(paginacion.paginaActual + 1) %>" class="btn-sm">Siguiente &raquo;</a>
+      <% } %>
+    </div>
+  </div>
+<% } %>

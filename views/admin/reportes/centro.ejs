@@ -1,0 +1,67 @@
+<%- include('../../partials/header') %>
+<%- include('../../partials/admin_nav') %>
+
+<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:15px; margin-bottom:22px;">
+  <div>
+    <h2 style="margin-bottom:4px;">Centro de Reportes y Consultas Gerenciales</h2>
+    <p style="margin:0; color:var(--text-secondary);">
+      Selecciona el reporte o consulta que deseas analizar. Cada reporte se ejecuta de forma independiente con paginación y exportación a CSV.
+    </p>
+  </div>
+  <div style="min-width:280px; flex:1; max-width:380px;">
+    <input type="search" id="buscador-reportes" placeholder="🔍 Filtrar reporte por nombre o tipo..."
+           style="width:100%; padding:10px 14px; border:1px solid #d4d4d8; border-radius:var(--radius-sm); font-size:0.94rem;">
+  </div>
+</div>
+
+<% const secciones = ['Reportes Generales (CU02.8)', 'Consultas Específicas (CU02.4)', 'Consultas Conjuntas (CU02.4)']; %>
+
+<% secciones.forEach(nombreSeccion => { %>
+  <section class="bloque-seccion-reporte" style="margin-bottom: 32px;">
+    <h3 style="border-bottom: 2px solid var(--border-color); padding-bottom: 8px; margin-bottom: 16px;">
+      <%= nombreSeccion %>
+    </h3>
+    <div class="productos-grid">
+      <% catalogoReportes.filter(r => r.seccion === nombreSeccion).forEach(rep => { %>
+        <% const badgeClase = rep.tipo === 'General' ? 'badge-success' : (rep.tipo === 'Específica' ? 'badge-info' : 'badge-warning'); %>
+        <article class="producto-card tarjeta-reporte" data-texto="<%= (rep.titulo + ' ' + rep.descripcion + ' ' + rep.tipo).toLowerCase() %>">
+          <div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+              <span class="badge <%= badgeClase %>"><%= rep.tipo %></span>
+              <% if (rep.requiereSeleccionPrevia) { %>
+                <small style="color:var(--text-muted); font-size:0.76rem;">Requiere filtro inicial</small>
+              <% } %>
+            </div>
+            <h4 style="font-size:1.1rem; margin:0 0 8px 0;"><%= rep.titulo %></h4>
+            <p style="font-size:0.88rem; color:var(--text-secondary); margin:0 0 18px 0;"><%= rep.descripcion %></p>
+          </div>
+          <a href="<%= rep.ruta %>" class="btn-primary">Ver reporte →</a>
+        </article>
+      <% }) %>
+    </div>
+  </section>
+<% }) %>
+
+<script>
+  (function() {
+    const input = document.getElementById('buscador-reportes');
+    const tarjetas = document.querySelectorAll('.tarjeta-reporte');
+    const secciones = document.querySelectorAll('.bloque-seccion-reporte');
+
+    if (input) {
+      input.addEventListener('input', function() {
+        const q = this.value.trim().toLowerCase();
+        tarjetas.forEach(card => {
+          const coincide = card.getAttribute('data-texto').includes(q);
+          card.style.display = coincide ? 'flex' : 'none';
+        });
+        secciones.forEach(sec => {
+          const visibles = Array.from(sec.querySelectorAll('.tarjeta-reporte')).some(c => c.style.display !== 'none');
+          sec.style.display = visibles ? 'block' : 'none';
+        });
+      });
+    }
+  })();
+</script>
+
+<%- include('../../partials/footer') %>
