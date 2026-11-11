@@ -1,44 +1,52 @@
 <%- include('../partials/header') %>
 
-<div class="container" style="max-width: 800px; margin-top: 30px;">
-  <div style="background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-    <h2>Detalle del Pedido #<%= pedido.id_pedido %></h2>
-    <p><strong>Fecha:</strong> <%= new Date(pedido.fecha_pedido).toLocaleString() %></p>
+<div style="max-width: 850px; margin: 0 auto;">
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:15px;">
+      <h2 style="margin:0;">Detalle del Pedido #<%= pedido.id_pedido %></h2>
+      <span class="badge-estado <%= pedido.estado_pedido.toLowerCase() %>">Estado Pago: <%= pedido.estado_pedido %></span>
+    </div>
+
+    <p><strong>Fecha:</strong> <%= new Date(pedido.fecha_pedido).toLocaleString('es-CO') %></p>
     <p><strong>Dirección de Entrega:</strong> <%= pedido.direccion_entrega %></p>
     <p><strong>Método de Pago:</strong> <%= pedido.nombre_metodo %></p>
-    <p><strong>Estado del Pedido:</strong> <span class="badge-estado <%= pedido.estado_pedido.toLowerCase() %>"><%= pedido.estado_pedido %></span></p>
     <p><strong>Logística de Entrega:</strong> <%= pedido.tipo_entrega %> — <strong>Estado Entrega:</strong> <%= pedido.estado_entrega %> <%= pedido.transportadora ? '('+pedido.transportadora+')' : '' %></p>
 
     <h3 style="margin-top: 25px;">Prendas Adquiridas</h3>
-    <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
-      <thead>
-        <tr style="background: #f1f5f9; text-align: left;">
-          <th style="padding: 10px;">Producto</th>
-          <th style="padding: 10px;">Talla / Color</th>
-          <th style="padding: 10px;">Cantidad</th>
-          <th style="padding: 10px;">Precio Unitario</th>
-          <th style="padding: 10px;">Subtotal</th>
-        </tr>
-      </thead>
-      <tbody>
-        <% pedido.detalles.forEach(det => { %>
-          <tr style="border-bottom: 1px solid #e2e8f0;">
-            <td style="padding: 10px;"><strong><%= det.nombre_producto %></strong></td>
-            <td style="padding: 10px;">Talla: <%= det.nombre_talla %> / Color: <%= det.nombre_color %></td>
-            <td style="padding: 10px;"><%= det.cantidad %></td>
-            <td style="padding: 10px;">$ <%= Number(det.precio_unitario).toLocaleString('es-CO') %></td>
-            <td style="padding: 10px; font-weight: bold; color: #16a34a;">$ <%= (det.cantidad * det.precio_unitario).toLocaleString('es-CO') %></td>
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th>Producto</th>
+            <th>Talla / Color</th>
+            <th>Cantidad</th>
+            <th>Precio Unitario</th>
+            <th>Subtotal</th>
           </tr>
-        <% }) %>
-      </tbody>
-    </table>
-
-    <div style="margin-top: 20px; text-align: right;">
-      <h3>Total Pagado: <span style="color: #16a34a;">$ <%= Number(pedido.total).toLocaleString('es-CO') %> COP</span></h3>
+        </thead>
+        <tbody>
+          <% pedido.detalles.forEach(det => { %>
+            <tr>
+              <td><strong><%= det.nombre_producto %></strong></td>
+              <td>Talla: <%= det.nombre_talla %> / Color: <%= det.nombre_color %></td>
+              <td><%= det.cantidad %></td>
+              <td><%= formatoCOP(det.precio_unitario) %></td>
+              <td><strong><%= formatoCOP(det.cantidad * det.precio_unitario) %></strong></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
     </div>
 
-    <div style="margin-top: 30px;">
-      <a href="/cuenta/pedidos" class="btn-secondary-link" style="width: auto; display: inline-block;">← Volver al Historial</a>
+    <div style="margin-top: 20px; background: var(--bg-muted); padding: 18px; border-radius: var(--radius-md); text-align: right;">
+      <p style="margin:4px 0;">Subtotal: <strong><%= formatoCOP(pedido.subtotal) %></strong></p>
+      <p style="margin:4px 0; color:var(--success-text);">Descuento por Puntos (<%= pedido.puntos_canjeados %> pts): <strong>- <%= formatoCOP(pedido.descuento_puntos) %></strong></p>
+      <h3 style="margin:8px 0 4px 0; color:var(--accent);">Total Final: <%= formatoCOP(pedido.total) %></h3>
+      <small style="color:var(--text-secondary);">Puntos ganados en esta orden: <strong>+<%= pedido.puntos_ganados %> pts</strong></small>
+    </div>
+
+    <div style="margin-top: 20px;">
+      <a href="/cuenta/pedidos" class="btn-sm">← Volver a Mi Cuenta</a>
     </div>
   </div>
 </div>

@@ -1,22 +1,23 @@
 /**
  * Archivo: controllers/authController.js
- * Propósito: Controladores para login, registro de clientes y logout.
+ * Propósito: Controladores para login, registro de clientes y logout (Ajuste 3).
  */
 const bcrypt = require('bcrypt');
 const UsuarioModel = require('../models/usuarioModel');
+const { obtenerRutaPorRol } = require('../helpers/rutaPorRol');
 
 class AuthController {
   static mostrarLogin(req, res) {
-    if (req.session.usuario) {
-      return AuthController.redireccionarSegunRol(req.session.usuario, res);
+    if (req.session && req.session.usuario) {
+      return res.redirect(obtenerRutaPorRol(req.session.usuario));
     }
-    res.render('auth/login', { titulo: 'Iniciar Sesión - E-commerce Ropa' });
+    res.render('auth/login', { titulo: 'Iniciar Sesión - PIJIC Menswear' });
   }
 
   static async procesarLogin(req, res) {
     try {
       const { correo, contrasena } = req.body;
-      const usuario = await UsuarioModel.buscarPorCorreo(correo);
+      const usuario = await UsuarioModel.buscarPorCorreo(correo ? correo.trim() : '');
 
       if (!usuario) {
         return res.render('auth/login', {
@@ -33,30 +34,41 @@ class AuthController {
         });
       }
 
-      // Guardar datos en sesión (excluyendo la contraseña)
       req.session.usuario = {
         id_usuario: usuario.id_usuario,
         nombre: usuario.nombre,
         correo: usuario.correo,
+        direccion: usuario.direccion || '',
         nombre_rol: usuario.nombre_rol,
+        rol: usuario.nombre_rol,
         id_proveedor: usuario.id_proveedor || null
       };
 
-      return AuthController.redireccionarSegunRol(req.session.usuario, res);
+      return res.redirect(obtenerRutaPorRol(req.session.usuario));
     } catch (error) {
       console.error('Error en procesarLogin:', error);
-      res.status(500).render('errors/500', { titulo: 'Error del servidor' });
+      res.status(500).render('errors/500', {
+        titulo: 'Error del servidor',
+        rutaRetorno: obtenerRutaPorRol(req.session ? req.session.usuario : null)
+      });
     }
   }
 
   static mostrarRegistro(req, res) {
-    res.render('auth/register', { titulo: 'Registro de Cliente' });
+    if (req.session && req.session.usuario) {
+      return res.redirect(obtenerRutaPorRol(req.session.usuario));
+    }
+    res.render('auth/register', { titulo: 'Registro de Cliente - PIJIC Menswear' });
   }
 
   static async procesarRegistro(req, res) {
     try {
+      if (req.session && req.session.usuario) {
+        return res.redirect(obtenerRutaPorRol(req.session.usuario));
+      }
+
       const { nombre, correo, contrasena, direccion } = req.body;
-      const existente = await UsuarioModel.buscarPorCorreo(correo);
+      const existente = await UsuarioModel.buscarPorCorreo(correo ? correo.trim() : '');
 
       if (existente) {
         return res.render('auth/register', {
@@ -68,13 +80,21 @@ class AuthController {
       const saltRounds = 10;
       const contrasenaHash = await bcrypt.hash(contrasena, saltRounds);
 
-      await UsuarioModel.crearCliente({ nombre, correo, contrasenaHash, direccion });
+      await UsuarioModel.crearCliente({
+        nombre: nombre.trim(),
+        correo: correo.trim(),
+        contrasenaHash,
+        direccion: direccion ? direccion.trim() : ''
+      });
 
-      req.session.mensajeExito = '¡Registro exitoso! Por favor inicia sesión.';
+      req.session.mensajeExito = '¡Registro exitoso! Ahora puedes iniciar sesión.';
       return res.redirect('/auth/login');
     } catch (error) {
       console.error('Error en procesarRegistro:', error);
-      res.status(500).render('errors/500', { titulo: 'Error del servidor' });
+      res.status(500).render('errors/500', {
+        titulo: 'Error del servidor',
+        rutaRetorno: '/auth/login'
+      });
     }
   }
 
@@ -82,16 +102,6 @@ class AuthController {
     req.session.destroy(() => {
       res.redirect('/auth/login');
     });
-  }
-
-  static redireccionarSegunRol(usuario, res) {
-    if (usuario.nombre_rol === 'Administrador') {
-      return res.redirect('/admin/dashboard');
-    } else if (usuario.nombre_rol === 'Proveedor') {
-      return res.redirect('/proveedor/consultas');
-    } else {
-      return res.redirect('/catalogo');
-    }
   }
 }
 

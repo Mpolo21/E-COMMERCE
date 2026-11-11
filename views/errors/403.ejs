@@ -1,7 +1,10 @@
 <%- include('../partials/header') %>
 <div class="error-container">
-  <h2>Error 403 - Acceso Denegado</h2>
-  <p><%= mensaje %></p>
-  <a href="/catalogo" class="btn-primary">Volver al inicio</a>
+  <span class="badge badge-danger">Error 403</span>
+  <h2>No tienes permiso para acceder a esta página</h2>
+  <p><%= typeof mensaje !== 'undefined' ? mensaje : 'Tu rol actual no cuenta con privilegios para visualizar este módulo.' %></p>
+  <a href="<%= typeof rutaRetorno !== 'undefined' ? rutaRetorno : rutaInicioRol %>" class="btn-primary" style="display:inline-block; width:auto; text-decoration:none; margin-top:15px;">
+    <%= usuarioActual ? 'Volver a mi panel' : 'Ir a Iniciar Sesión' %>
+  </a>
 </div>
 <%- include('../partials/footer') %>

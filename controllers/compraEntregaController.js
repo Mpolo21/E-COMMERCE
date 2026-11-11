@@ -1,9 +1,9 @@
 /**
  * Archivo: controllers/compraEntregaController.js
- * Propósito: Lógica de control para gestión de despachos de entregas y registro de compras.
+ * Propósito: Controlar despachos, Pagos Contraentrega (Ajuste 1), Cancelaciones (Ajuste 4.5) y Compras.
  */
 const CompraEntregaModel = require('../models/compraEntregaModel');
-const AdminModel = require('../models/adminModel'); // Reutilizamos para listar transportadoras
+const AdminModel = require('../models/adminModel');
 
 class CompraEntregaController {
   static async vistaEntregas(req, res) {
@@ -33,6 +33,53 @@ class CompraEntregaController {
     }
   }
 
+  // AJUSTE 1: Vista de Pagos Contraentrega
+  static async vistaPagosContraentrega(req, res) {
+    try {
+      const { estado = '', busqueda = '' } = req.query;
+      const pedidos = await CompraEntregaModel.listarPedidosContraentrega({ estado, busqueda });
+
+      res.render('admin/contraentrega', {
+        titulo: 'Pagos Contraentrega - PIJIC',
+        pedidos,
+        filtros: { estado, busqueda }
+      });
+    } catch (error) {
+      console.error('Error en vistaPagosContraentrega:', error);
+      res.status(500).render('errors/500', { titulo: 'Error del servidor' });
+    }
+  }
+
+  // AJUSTE 1: Confirmar recaudo de pedido contraentrega y otorgar puntos
+  static async confirmarPagoContraentrega(req, res) {
+    try {
+      const { id_pedido } = req.body;
+      const resultado = await CompraEntregaModel.marcarContraentregaComoPagado(id_pedido);
+
+      req.session.mensajeExito = `Pedido #${resultado.id_pedido} marcado como PAGADO exitosamente. Se otorgaron ${resultado.puntosOtorgados} puntos de fidelización al cliente.`;
+      res.redirect('/admin/contraentrega');
+    } catch (error) {
+      console.error('Error al confirmar pago contraentrega:', error);
+      req.session.mensajeError = error.message || 'No se pudo registrar el pago contraentrega.';
+      res.redirect('/admin/contraentrega');
+    }
+  }
+
+  // AJUSTE 4.5: Cancelar pedido devolviendo stock, puntos canjeados y revirtiendo puntos ganados
+  static async cancelarPedido(req, res) {
+    try {
+      const { id_pedido, origen } = req.body;
+      const resultado = await CompraEntregaModel.cancelarPedidoTransaccional(id_pedido);
+
+      req.session.mensajeExito = `Pedido #${resultado.id_pedido} cancelado. Stock repuesto, ${resultado.puntosDevueltos} pts devueltos y ${resultado.puntosRevertidos} pts revertidos.`;
+      res.redirect(origen || '/admin/contraentrega');
+    } catch (error) {
+      console.error('Error al cancelar pedido:', error);
+      req.session.mensajeError = error.message || 'No se pudo cancelar el pedido.';
+      res.redirect('/admin/contraentrega');
+    }
+  }
+
   static async vistaCompras(req, res) {
     try {
       const catalogos = await CompraEntregaModel.obtenerCatalogosParaCompra();
@@ -49,17 +96,17 @@ class CompraEntregaController {
   static async registrarCompra(req, res) {
     try {
       const { id_proveedor, id_producto, id_talla, id_color, cantidad, precio_compra_unitario } = req.body;
-      
+
       const resultado = await CompraEntregaModel.registrarCompraTransaccional({
         id_proveedor,
         id_producto,
         id_talla,
         id_color,
-        cantidad: parseInt(cantidad),
+        cantidad: parseInt(cantidad, 10),
         precio_compra_unitario: parseFloat(precio_compra_unitario)
       });
 
-      req.session.mensajeExito = `Compra registrada. Stock sumado y Costo Promedio Ponderado recalculado exitosamente (Nuevo costo: $${Number(resultado.nuevo_costo).toLocaleString('es-CO')}).`;
+      req.session.mensajeExito = `Compra registrada. Stock sumado y Costo Promedio Ponderado recalculado ($${Math.round(resultado.nuevo_costo).toLocaleString('es-CO')} COP).`;
       res.redirect('/admin/compras');
     } catch (error) {
       console.error('Error en registrarCompra:', error);

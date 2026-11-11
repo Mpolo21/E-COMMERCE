@@ -1,14 +1,16 @@
 /**
  * Archivo: controllers/carritoController.js
- * Propósito: Gestionar el carrito de compras y la ejecución del checkout (CU01.2 y CU01.5).
+ * Propósito: Gestionar el carrito de compras y la ejecución del checkout (CU01.2, CU01.5, Ajustes 1 y 4).
  */
 const CarritoModel = require('../models/carritoModel');
+const PuntosService = require('../services/puntosService');
+const { configPuntos } = require('../config/puntos');
 
 class CarritoController {
   static async agregarAlCarrito(req, res) {
     try {
       const { id_inventario, cantidad } = req.body;
-      const cantNum = parseInt(cantidad) || 1;
+      const cantNum = parseInt(cantidad, 10) || 1;
 
       const itemInv = await CarritoModel.obtenerItemInventario(id_inventario);
       if (!itemInv) {
@@ -25,12 +27,11 @@ class CarritoController {
         req.session.carrito = [];
       }
 
-      // Verificar si ya existe en el carrito
-      const index = req.session.carrito.findIndex(i => i.id_inventario == id_inventario);
+      const index = req.session.carrito.findIndex((i) => i.id_inventario == id_inventario);
       if (index > -1) {
         const nuevaCantidad = req.session.carrito[index].cantidad + cantNum;
         if (itemInv.cantidad_stock < nuevaCantidad) {
-          req.session.mensajeError = 'No puedes agregar más unidades que el stock disponible.';
+          req.session.mensajeError = `No puedes superar el stock disponible (${itemInv.cantidad_stock} unidades).`;
           return res.redirect('/carrito');
         }
         req.session.carrito[index].cantidad = nuevaCantidad;
@@ -44,6 +45,7 @@ class CarritoController {
           nombre_talla: itemInv.nombre_talla,
           nombre_color: itemInv.nombre_color,
           precio: Number(itemInv.precio),
+          stock_maximo: itemInv.cantidad_stock,
           cantidad: cantNum
         });
       }
@@ -58,34 +60,44 @@ class CarritoController {
 
   static verCarrito(req, res) {
     const carrito = req.session.carrito || [];
-    const subtotal = carrito.reduce((acc, item) => acc + (item.precio * item.cantidad), 0);
+    const subtotal = carrito.reduce((acc, item) => acc + item.precio * item.cantidad, 0);
 
     res.render('cliente/carrito', {
-      titulo: 'Carrito de Compras - PIJIC',
+      titulo: 'Carrito de Compras - PIJIC Menswear',
       carrito,
       subtotal,
       total: subtotal
     });
   }
 
-  static modificarCantidad(req, res) {
-    const { id_inventario, accion } = req.body;
-    if (!req.session.carrito) return res.redirect('/carrito');
+  static async modificarCantidad(req, res) {
+    try {
+      const { id_inventario, accion } = req.body;
+      if (!req.session.carrito) return res.redirect('/carrito');
 
-    const index = req.session.carrito.findIndex(i => i.id_inventario == id_inventario);
-    if (index > -1) {
-      if (accion === 'aumentar') {
-        req.session.carrito[index].cantidad += 1;
-      } else if (accion === 'disminuir') {
-        req.session.carrito[index].cantidad -= 1;
-        if (req.session.carrito[index].cantidad <= 0) {
+      const index = req.session.carrito.findIndex((i) => i.id_inventario == id_inventario);
+      if (index > -1) {
+        if (accion === 'aumentar') {
+          const itemInv = await CarritoModel.obtenerItemInventario(id_inventario);
+          if (!itemInv || req.session.carrito[index].cantidad + 1 > itemInv.cantidad_stock) {
+            req.session.mensajeError = 'Alcanzaste el límite de stock disponible para esta prenda.';
+            return res.redirect('/carrito');
+          }
+          req.session.carrito[index].cantidad += 1;
+        } else if (accion === 'disminuir') {
+          req.session.carrito[index].cantidad -= 1;
+          if (req.session.carrito[index].cantidad <= 0) {
+            req.session.carrito.splice(index, 1);
+          }
+        } else if (accion === 'eliminar') {
           req.session.carrito.splice(index, 1);
         }
-      } else if (accion === 'eliminar') {
-        req.session.carrito.splice(index, 1);
       }
+      res.redirect('/carrito');
+    } catch (error) {
+      console.error('Error al modificar carrito:', error);
+      res.redirect('/carrito');
     }
-    res.redirect('/carrito');
   }
 
   static async mostrarCheckout(req, res) {
@@ -96,15 +108,27 @@ class CarritoController {
         return res.redirect('/catalogo');
       }
 
-      const metodosPago = await CarritoModel.obtenerMetodosPagoActivos();
-      const subtotal = carrito.reduce((acc, item) => acc + (item.precio * item.cantidad), 0);
+      const [metodosPago, datosUsuario] = await Promise.all([
+        CarritoModel.obtenerMetodosPagoActivos(),
+        CarritoModel.obtenerSaldoUsuario(req.session.usuario.id_usuario)
+      ]);
+
+      const subtotal = carrito.reduce((acc, item) => acc + item.precio * item.cantidad, 0);
+      const saldoPuntos = Number(datosUsuario.puntos_fidelizacion) || 0;
+      const equivalenciaPesos = saldoPuntos * configPuntos.valorPuntoCop;
+      const { puntosMaximos, descuentoMaximoCop } = PuntosService.calcularDescuentoMaximo(subtotal, saldoPuntos);
 
       res.render('cliente/checkout', {
-        titulo: 'Finalizar Compra (Checkout) - PIJIC',
+        titulo: 'Finalizar Compra - PIJIC Menswear',
         carrito,
         subtotal,
         total: subtotal,
-        metodosPago
+        metodosPago,
+        saldoPuntos,
+        equivalenciaPesos,
+        puntosMaximos,
+        descuentoMaximoCop,
+        direccionCliente: datosUsuario.direccion || req.session.usuario.direccion || ''
       });
     } catch (error) {
       console.error('Error al mostrar checkout:', error);
@@ -114,7 +138,7 @@ class CarritoController {
 
   static async procesarCheckout(req, res) {
     try {
-      const { direccion_entrega, id_metodo_pago } = req.body;
+      const { direccion_entrega, id_metodo_pago, usar_puntos, puntos_a_canjear } = req.body;
       const carrito = req.session.carrito || [];
 
       if (carrito.length === 0) {
@@ -122,28 +146,48 @@ class CarritoController {
         return res.redirect('/catalogo');
       }
 
-      const totalCompra = carrito.reduce((acc, item) => acc + (item.precio * item.cantidad), 0);
-      const copPorPunto = parseInt(process.env.COP_POR_PUNTO) || 1000;
+      if (!direccion_entrega || !direccion_entrega.trim()) {
+        req.session.mensajeError = 'Debes ingresar una dirección de entrega válida.';
+        return res.redirect('/carrito/checkout');
+      }
+
+      // Si la casilla usar_puntos está marcada, leemos puntos_a_canjear; de lo contrario 0
+      let puntosSolicitados = 0;
+      if (usar_puntos === '1' || usar_puntos === 'on') {
+        const valorBruto = String(puntos_a_canjear ?? '0').trim();
+        if (!/^\d+$/.test(valorBruto)) {
+          req.session.mensajeError = 'La cantidad de puntos a canjear debe ser un número entero válido.';
+          return res.redirect('/carrito/checkout');
+        }
+        puntosSolicitados = parseInt(valorBruto, 10);
+      }
 
       const resultado = await CarritoModel.procesarCheckoutTransaccional({
         id_cliente: req.session.usuario.id_usuario,
         direccion_entrega,
         id_metodo_pago,
         carritoItems: carrito,
-        totalCompra,
-        copPorPunto
+        puntosACanjear: puntosSolicitados
       });
 
       if (!resultado.success) {
-        req.session.mensajeError = `Error en la compra: ${resultado.mensaje}`;
-        return res.redirect('/carrito');
+        req.session.mensajeError = `No se pudo procesar la compra: ${resultado.mensaje}`;
+        return res.redirect('/carrito/checkout');
       }
 
-      // Vaciar carrito tras compra exitosa
       req.session.carrito = [];
-      req.session.mensajeExito = `¡Compra realizada con éxito! Pedido #${resultado.id_pedido} creado. Ganaste ${resultado.puntosGanados} puntos de fidelización.`;
-      return res.redirect('/cuenta/pedidos');
 
+      if (resultado.esContraentrega) {
+        req.session.mensajeExito = `¡Pedido #${resultado.id_pedido} registrado como Contraentrega (Estado de pago: Debiendo)! Pagarás al recibir. Los puntos se acreditarán cuando el administrador confirme el recaudo.`;
+      } else if (resultado.totalAPagar === 0) {
+        req.session.mensajeExito = `¡Pedido #${resultado.id_pedido} pagado 100% con tus puntos de fidelización! (${resultado.puntosCanjeados} puntos canjeados).`;
+      } else {
+        req.session.mensajeExito = `¡Compra exitosa! Pedido #${resultado.id_pedido} pagado. ${
+          resultado.puntosCanjeados > 0 ? `Canjeaste ${resultado.puntosCanjeados} pts. ` : ''
+        }Ganaste ${resultado.puntosGanados} puntos de fidelización.`;
+      }
+
+      return res.redirect('/cuenta/pedidos');
     } catch (error) {
       console.error('Error al procesar checkout:', error);
       res.status(500).render('errors/500', { titulo: 'Error del servidor' });

@@ -1,7 +1,10 @@
 <%- include('../partials/header') %>
 <div class="error-container">
-  <h2>Error 500 - Error Interno</h2>
-  <p>Ocurrió un problema procesando tu solicitud.</p>
-  <a href="/catalogo" class="btn-primary">Volver al inicio</a>
+  <span class="badge badge-danger">Error 500</span>
+  <h2>Error interno del servidor</h2>
+  <p>Ocurrió un inconveniente inesperado al procesar tu solicitud. Intenta nuevamente.</p>
+  <a href="<%= typeof rutaRetorno !== 'undefined' ? rutaRetorno : rutaInicioRol %>" class="btn-primary" style="display:inline-block; width:auto; text-decoration:none; margin-top:15px;">
+    <%= usuarioActual ? 'Volver a mi panel' : 'Ir a Iniciar Sesión' %>
+  </a>
 </div>
 <%- include('../partials/footer') %>

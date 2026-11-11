@@ -1,62 +1,122 @@
 <%- include('../partials/header') %>
 
-<div class="container" style="max-width: 1000px; margin-top: 30px;">
-  <!-- Tarjeta de Perfil y Puntos -->
-  <div style="background: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 25px;">
-    <div>
-      <h2>Mi Cuenta</h2>
-      <p><strong>Nombre:</strong> <%= cliente.nombre %></p>
-      <p><strong>Correo:</strong> <%= cliente.correo %></p>
-      <p><strong>Dirección por defecto:</strong> <%= cliente.direccion || 'No especificada' %></p>
-    </div>
-    <div style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 20px; border-radius: 8px; text-align: center; min-width: 220px;">
-      <p style="margin: 0; font-size: 0.9rem; color: #166534;">Puntos de Fidelización</p>
-      <h3 style="margin: 5px 0 0 0; font-size: 2rem; color: #15803d;"><%= cliente.puntos_fidelizacion %> pts</h3>
-      <small style="color: #4ade80;">¡Disponibles para canjear!</small>
-    </div>
+<div class="card" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:20px; margin-bottom:28px;">
+  <div>
+    <h2 style="margin-bottom:6px;">Mi Cuenta</h2>
+    <p style="margin:3px 0;"><strong>Cliente:</strong> <%= cliente.nombre %> (<%= cliente.correo %>)</p>
+    <p style="margin:3px 0;"><strong>Dirección registrada:</strong> <%= cliente.direccion || 'No especificada' %></p>
+    <p style="margin:8px 0 0 0; font-size:0.86rem; color:var(--text-secondary);">
+      <strong>Regla del Programa:</strong> Ganas 1 punto por cada <%= formatoCOP(configPuntos.copPorPuntoGanado) %> efectivamente pagados y cada punto vale <%= formatoCOP(configPuntos.valorPuntoCop) %> de descuento en tus compras.
+    </p>
   </div>
-
-  <!-- Historial de Pedidos -->
-  <h2>Historial de Compras y Estado de Entregas</h2>
-  <% if (pedidos.length === 0) { %>
-    <div class="alert alert-danger" style="margin-top: 20px;">
-      Aún no has realizado ninguna compra en nuestra tienda. <a href="/catalogo">Explora el catálogo aquí</a>
-    </div>
-  <% } else { %>
-    <div style="overflow-x: auto;">
-      <table style="width: 100%; border-collapse: collapse; margin-top: 15px; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-        <thead>
-          <tr style="background: #1e293b; color: #fff; text-align: left;">
-            <th style="padding: 12px;">ID Pedido</th>
-            <th style="padding: 12px;">Fecha</th>
-            <th style="padding: 12px;">Total</th>
-            <th style="padding: 12px;">Pago</th>
-            <th style="padding: 12px;">Estado Pedido</th>
-            <th style="padding: 12px;">Estado Entrega</th>
-            <th style="padding: 12px;">Acción</th>
-          </tr>
-        </thead>
-        <tbody>
-          <% pedidos.forEach(ped => { %>
-            <tr style="border-bottom: 1px solid #e2e8f0;">
-              <td style="padding: 12px; font-weight: bold;">#<%= ped.id_pedido %></td>
-              <td style="padding: 12px;"><%= new Date(ped.fecha_pedido).toLocaleString() %></td>
-              <td style="padding: 12px; font-weight: bold; color: #16a34a;">$ <%= Number(ped.total).toLocaleString('es-CO') %></td>
-              <td style="padding: 12px;"><%= ped.metodo_pago %></td>
-              <td style="padding: 12px;"><span class="badge-estado <%= ped.estado_pedido.toLowerCase() %>"><%= ped.estado_pedido %></span></td>
-              <td style="padding: 12px;">
-                <strong><%= ped.estado_entrega %></strong><br>
-                <small style="color: #64748b;"><%= ped.tipo_entrega %> <%= ped.transportadora ? '('+ped.transportadora+')' : '' %></small>
-              </td>
-              <td style="padding: 12px;">
-                <a href="/cuenta/pedidos/<%= ped.id_pedido %>" class="btn-sm" style="text-decoration: none; background: #2563eb; color: #fff; padding: 6px 10px; display: inline-block;">Ver Detalle</a>
-              </td>
-            </tr>
-          <% }) %>
-        </tbody>
-      </table>
-    </div>
-  <% } %>
+  <div style="background: var(--accent-soft); border: 1px solid #e5d5b5; padding: 18px 24px; border-radius: var(--radius-md); text-align: center; min-width: 240px;">
+    <span style="font-size:0.8rem; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-secondary); font-weight:600;">Saldo de Fidelización</span>
+    <h3 style="margin:6px 0 2px 0; font-size:2rem; color:var(--accent);"><%= cliente.puntos_fidelizacion.toLocaleString('es-CO') %> pts</h3>
+    <strong style="color:var(--success-text); font-size:0.95rem;">Equivalen a <%= formatoCOP(equivalenciaPesos) %></strong>
+  </div>
 </div>
+
+<!-- Historial de Pedidos -->
+<h3>Historial de Pedidos y Estado de Pago / Entrega</h3>
+<% if (pedidos.length === 0) { %>
+  <div class="card" style="text-align:center; margin-bottom:30px;">
+    <p>Aún no has realizado compras en nuestra tienda.</p>
+    <a href="/catalogo" class="btn-accent">Explorar Catálogo</a>
+  </div>
+<% } else { %>
+  <div class="table-responsive" style="margin-bottom:35px;">
+    <table>
+      <thead>
+        <tr>
+          <th>Pedido</th>
+          <th>Fecha</th>
+          <th>Subtotal</th>
+          <th>Descuento Puntos</th>
+          <th>Total a Pagar</th>
+          <th>Puntos Ganados</th>
+          <th>Método y Estado Pago</th>
+          <th>Entrega</th>
+          <th>Acción</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% pedidos.forEach(ped => { %>
+          <tr>
+            <td><strong>#<%= ped.id_pedido %></strong></td>
+            <td><%= new Date(ped.fecha_pedido).toLocaleDateString('es-CO') %></td>
+            <td><%= formatoCOP(ped.subtotal) %></td>
+            <td style="color:var(--success-text);">
+              <% if (ped.puntos_canjeados > 0) { %>
+                - <%= formatoCOP(ped.descuento_puntos) %> (<%= ped.puntos_canjeados %> pts)
+              <% } else { %>
+                $ 0
+              <% } %>
+            </td>
+            <td><strong><%= formatoCOP(ped.total) %></strong></td>
+            <td style="color:var(--accent); font-weight:600;">+<%= ped.puntos_ganados %> pts</td>
+            <td>
+              <span class="badge-estado <%= ped.estado_pedido.toLowerCase() %>"><%= ped.estado_pedido %></span><br>
+              <small style="color:var(--text-muted);"><%= ped.metodo_pago %></small>
+            </td>
+            <td>
+              <span class="badge-estado <%= ped.estado_entrega === 'Entregado' ? 'entregado' : (ped.estado_entrega === 'Despachado' ? 'despachado' : 'en-preparacion') %>">
+                <%= ped.estado_entrega %>
+              </span><br>
+              <small style="color:var(--text-muted);"><%= ped.tipo_entrega %> <%= ped.transportadora ? '('+ped.transportadora+')' : '' %></small>
+            </td>
+            <td>
+              <a href="/cuenta/pedidos/<%= ped.id_pedido %>" class="btn-sm">Ver Detalle</a>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+<% } %>
+
+<!-- Tabla de Movimientos de Puntos (Ajuste 4.6) -->
+<h3>Historial de Movimientos de Puntos</h3>
+<% if (!movimientos || movimientos.length === 0) { %>
+  <div class="card">
+    <p style="margin:0; color:var(--text-secondary);">Aún no registras movimientos de puntos en tu cuenta.</p>
+  </div>
+<% } else { %>
+  <div class="table-responsive">
+    <table>
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Tipo</th>
+          <th>Puntos</th>
+          <th>Saldo Resultante</th>
+          <th>Pedido Relacionado</th>
+          <th>Descripción</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% movimientos.forEach(mov => { %>
+          <tr>
+            <td><%= new Date(mov.fecha).toLocaleString('es-CO') %></td>
+            <td>
+              <span class="badge-estado <%= mov.tipo.toLowerCase() %>"><%= mov.tipo %></span>
+            </td>
+            <td style="font-weight:700; color:<%= mov.puntos >= 0 ? 'var(--success-text)' : 'var(--danger-text)' %>;">
+              <%= mov.puntos > 0 ? '+' + mov.puntos.toLocaleString('es-CO') : mov.puntos.toLocaleString('es-CO') %> pts
+            </td>
+            <td><strong><%= mov.saldo_resultante.toLocaleString('es-CO') %> pts</strong></td>
+            <td>
+              <% if (mov.id_pedido) { %>
+                <a href="/cuenta/pedidos/<%= mov.id_pedido %>">Pedido #<%= mov.id_pedido %></a>
+              <% } else { %>
+                —
+              <% } %>
+            </td>
+            <td><%= mov.descripcion %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+<% } %>
 
 <%- include('../partials/footer') %>

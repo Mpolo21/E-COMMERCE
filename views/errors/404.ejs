@@ -1,7 +1,10 @@
 <%- include('../partials/header') %>
-<div class="error-container" style="text-align: center;">
-  <h2>Error 404 - Página No Encontrada</h2>
-  <p>La ruta o recurso que intentas consultar no existe en el sistema.</p>
-  <a href="/catalogo" class="btn-primary" style="display: inline-block; width: auto; text-decoration: none; margin-top: 10px;">Ir al Inicio</a>
+<div class="error-container">
+  <span class="badge badge-warning">Error 404</span>
+  <h2>Página no encontrada</h2>
+  <p>La dirección o recurso que intentas consultar no existe o fue movido.</p>
+  <a href="<%= typeof rutaRetorno !== 'undefined' ? rutaRetorno : rutaInicioRol %>" class="btn-primary" style="display:inline-block; width:auto; text-decoration:none; margin-top:15px;">
+    <%= usuarioActual ? 'Volver a mi panel' : 'Ir a Iniciar Sesión' %>
+  </a>
 </div>
 <%- include('../partials/footer') %>

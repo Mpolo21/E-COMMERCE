@@ -1,12 +1,11 @@
 <%- include('../partials/header') %>
 
 <div class="catalogo-wrapper">
-  <!-- Barra Lateral de Filtros -->
   <aside class="filtros-sidebar">
-    <h3>Filtrar Catálogo</h3>
+    <h3>Filtrar Colección</h3>
     <form action="/catalogo" method="GET">
       <div class="form-group">
-        <label for="categoria">Categoría:</label>
+        <label for="categoria">Categoría</label>
         <select name="categoria" id="categoria">
           <option value="">Todas las categorías</option>
           <% filtrosDisponibles.categorias.forEach(cat => { %>
@@ -16,7 +15,7 @@
       </div>
 
       <div class="form-group">
-        <label for="marca">Marca:</label>
+        <label for="marca">Marca</label>
         <select name="marca" id="marca">
           <option value="">Todas las marcas</option>
           <% filtrosDisponibles.marcas.forEach(mar => { %>
@@ -26,7 +25,7 @@
       </div>
 
       <div class="form-group">
-        <label for="talla">Talla:</label>
+        <label for="talla">Talla</label>
         <select name="talla" id="talla">
           <option value="">Todas las tallas</option>
           <% filtrosDisponibles.tallas.forEach(tal => { %>
@@ -36,7 +35,7 @@
       </div>
 
       <div class="form-group">
-        <label for="color">Color:</label>
+        <label for="color">Color</label>
         <select name="color" id="color">
           <option value="">Todos los colores</option>
           <% filtrosDisponibles.colores.forEach(col => { %>
@@ -50,27 +49,49 @@
     </form>
   </aside>
 
-  <!-- Grilla de Productos -->
   <section class="productos-grid-container">
-    <h2>Catálogo de Ropa Masculina</h2>
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+      <h2 style="margin:0;">Colección Masculina</h2>
+      <span style="color:var(--text-muted); font-size:0.9rem;"><%= productos.length %> prenda(s) encontrada(s)</span>
+    </div>
+
     <% if (productos.length === 0) { %>
-      <div class="alert alert-danger" style="margin-top: 20px;">
-        No se encontraron prendas que coincidan con los filtros seleccionados. Intenta con otros criterios de búsqueda.
+      <div class="card" style="margin-top: 20px; text-align: center; padding: 45px 25px;">
+        <h3>No encontramos prendas con esos criterios</h3>
+        <p style="color:var(--text-secondary);">Prueba limpiando los filtros o seleccionando otra categoría o talla.</p>
+        <a href="/catalogo" class="btn-accent" style="margin-top:10px;">Ver todo el catálogo</a>
       </div>
     <% } else { %>
       <div class="productos-grid">
         <% productos.forEach(prod => { %>
-          <div class="producto-card">
-            <div class="producto-header-badge">
-              <span class="badge-marca"><%= prod.nombre_marca %></span>
-              <span class="badge-temporada"><%= prod.nombre_temporada %></span>
+          <article class="producto-card">
+            <div>
+              <div class="producto-img-placeholder" role="img" aria-label="Imagen ilustrativa de <%= prod.nombre_producto %>">
+                <span class="placeholder-cat"><%= prod.nombre_categoria %></span>
+                <span class="placeholder-brand"><%= prod.nombre_marca %></span>
+              </div>
+              <div class="producto-header-badge">
+                <span class="badge-marca"><%= prod.nombre_marca %></span>
+                <span class="badge-temporada"><%= prod.nombre_temporada %></span>
+              </div>
+              <h3 style="font-size:1.1rem; margin:6px 0;"><%= prod.nombre_producto %></h3>
+              <p class="precio"><%= formatoCOP(prod.precio) %></p>
             </div>
-            <h3><%= prod.nombre_producto %></h3>
-            <p class="producto-cat"><%= prod.nombre_categoria %></p>
-            <p class="precio">$ <%= Number(prod.precio).toLocaleString('es-CO') %> COP</p>
-            <p class="stock-info">Stock total: <strong><%= prod.stock_total %> unids.</strong></p>
-            <a href="/catalogo/producto/<%= prod.id_producto %>" class="btn-primary" style="text-align: center; text-decoration: none; display: block;">Ver Detalle / Comprar</a>
-          </div>
+
+            <div>
+              <div style="margin-bottom: 14px; display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:0.84rem; color:var(--text-secondary);">Stock: <strong><%= prod.stock_total %></strong></span>
+                <% if (prod.stock_total <= 0) { %>
+                  <span class="badge badge-danger">Agotado</span>
+                <% } else if (prod.stock_total <= 5) { %>
+                  <span class="badge badge-warning">Pocas unidades</span>
+                <% } else { %>
+                  <span class="badge badge-success">Disponible</span>
+                <% } %>
+              </div>
+              <a href="/catalogo/producto/<%= prod.id_producto %>" class="btn-primary">Ver Detalle / Comprar</a>
+            </div>
+          </article>
         <% }) %>
       </div>
     <% } %>

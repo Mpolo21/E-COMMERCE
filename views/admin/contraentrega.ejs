@@ -1,0 +1,110 @@
+<%- include('../partials/header') %>
+<%- include('../partials/admin_nav') %>
+
+<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+  <div>
+    <h2 style="margin-bottom:4px;">Gestión de Pagos Contraentrega</h2>
+    <p style="margin:0; color:var(--text-secondary);">
+      Solo el Administrador puede confirmar el recaudo de un pedido contraentrega. Al marcarlo como Pagado se acreditan automáticamente los puntos de fidelización al cliente.
+    </p>
+  </div>
+</div>
+
+<!-- Filtros por Estado (Debiendo / Pagado) y Búsqueda por Cliente o ID -->
+<form action="/admin/contraentrega" method="GET" class="card" style="margin: 20px 0; display:flex; gap:15px; flex-wrap:wrap; align-items:flex-end;">
+  <div class="form-group" style="margin:0; flex:1; min-width:180px;">
+    <label for="estado">Estado de Pago</label>
+    <select name="estado" id="estado">
+      <option value="">Todos (Debiendo y Pagados)</option>
+      <option value="Debiendo" <%= filtros.estado === 'Debiendo' ? 'selected' : '' %>>Debiendo (Pendientes de cobro)</option>
+      <option value="Pagado" <%= filtros.estado === 'Pagado' ? 'selected' : '' %>>Pagado (Recaudados)</option>
+    </select>
+  </div>
+  <div class="form-group" style="margin:0; flex:2; min-width:240px;">
+    <label for="busqueda">Buscar por Cliente o # de Pedido</label>
+    <input type="text" name="busqueda" id="busqueda" value="<%= filtros.busqueda %>" placeholder="Ej: Juan Pérez o 1">
+  </div>
+  <button type="submit" class="btn-primary" style="width:auto; padding:10px 20px;">Filtrar</button>
+  <a href="/admin/contraentrega" class="btn-sm" style="padding:10px 14px;">Limpiar</a>
+</form>
+
+<div class="table-responsive">
+  <table>
+    <thead>
+      <tr>
+        <th>ID Pedido</th>
+        <th>Cliente</th>
+        <th>Fecha</th>
+        <th>Subtotal</th>
+        <th>Descuento Puntos</th>
+        <th>Total a Cobrar</th>
+        <th>Dirección</th>
+        <th>Estado Entrega</th>
+        <th>Estado Pago</th>
+        <th>Acciones Admin</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% if (pedidos.length === 0) { %>
+        <tr>
+          <td colspan="10" style="text-align:center; padding:25px;">No se encontraron pedidos contraentrega con los filtros seleccionados.</td>
+        </tr>
+      <% } else { %>
+        <% pedidos.forEach(p => { %>
+          <tr>
+            <td><strong>#<%= p.id_pedido %></strong></td>
+            <td>
+              <strong><%= p.cliente_nombre %></strong><br>
+              <small style="color:var(--text-muted);"><%= p.cliente_correo %></small>
+            </td>
+            <td><%= new Date(p.fecha_pedido).toLocaleDateString('es-CO') %></td>
+            <td><%= formatoCOP(p.subtotal) %></td>
+            <td style="color:var(--success-text);">
+              <%= p.puntos_canjeados > 0 ? '- ' + formatoCOP(p.descuento_puntos) + ' (' + p.puntos_canjeados + ' pts)' : '$ 0' %>
+            </td>
+            <td style="font-weight:700; color:var(--accent);"><%= formatoCOP(p.total) %></td>
+            <td><small><%= p.direccion_entrega %></small></td>
+            <td>
+              <span class="badge-estado <%= p.estado_entrega === 'Entregado' ? 'entregado' : (p.estado_entrega === 'Despachado' ? 'despachado' : 'en-preparacion') %>">
+                <%= p.estado_entrega %>
+              </span>
+            </td>
+            <td>
+              <span class="badge-estado <%= p.estado_pedido.toLowerCase() %>"><%= p.estado_pedido %></span>
+              <% if (p.puntos_ganados > 0) { %>
+                <br><small style="color:var(--success-text);">+<%= p.puntos_ganados %> pts otorgados</small>
+              <% } %>
+            </td>
+            <td>
+              <% if (p.estado_pedido === 'Debiendo' || p.estado_pedido === 'Pendiente') { %>
+                <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                  <form action="/admin/contraentrega/pagar" method="POST" onsubmit="return confirm('¿Confirmas que se recibió el pago en efectivo de <%= formatoCOP(p.total) %> del Pedido #<%= p.id_pedido %>? Esta acción acreditará los puntos de fidelización al cliente.');">
+                    <input type="hidden" name="id_pedido" value="<%= p.id_pedido %>">
+                    <button type="submit" class="btn-accent" style="padding:6px 12px; font-size:0.82rem;">
+                      ✓ Marcar como pagado
+                    </button>
+                  </form>
+                  <form action="/admin/pedidos/cancelar" method="POST" onsubmit="return confirm('¿Seguro que deseas CANCELAR el Pedido #<%= p.id_pedido %>? Se repondrá el stock y se devolverán los puntos canjeados.');">
+                    <input type="hidden" name="id_pedido" value="<%= p.id_pedido %>">
+                    <input type="hidden" name="origen" value="/admin/contraentrega">
+                    <button type="submit" class="btn-danger-sm">Cancelar</button>
+                  </form>
+                </div>
+              <% } else if (p.estado_pedido === 'Pagado') { %>
+                <form action="/admin/pedidos/cancelar" method="POST" onsubmit="return confirm('¿Seguro que deseas CANCELAR el Pedido #<%= p.id_pedido %>? Se devolverán puntos canjeados y se revertirán los puntos ganados.');">
+                  <input type="hidden" name="id_pedido" value="<%= p.id_pedido %>">
+                  <input type="hidden" name="origen" value="/admin/contraentrega">
+                  <button type="submit" class="btn-danger-sm">Cancelar / Revertir</button>
+                </form>
+              <% } else { %>
+                <small style="color:var(--text-muted);">Cancelado</small>
+              <% } %>
+            </td>
+          </tr>
+        <% }) %>
+      <% } %>
+    </tbody>
+  </table>
+</div>
+
+<%- include('../partials/footer') %>

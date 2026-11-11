@@ -3,37 +3,51 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><%= typeof titulo !== 'undefined' ? titulo : 'E-commerce Ropa Masculina' %></title>
+  <title><%= typeof titulo !== 'undefined' ? titulo : 'PIJIC Menswear - E-commerce Ropa Masculina' %></title>
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
   <header class="main-header">
     <div class="container nav-container">
-      <h1><a href="/catalogo">PIJIC E-commerce Ropa</a></h1>
-      <nav>
+      <a href="<%= rutaInicioRol %>" class="brand-logo">
+        <span class="brand-mark">PM</span>
+        <span class="brand-title">PIJIC MENSWEAR</span>
+      </a>
+      <button type="button" class="nav-toggle-btn" onclick="document.getElementById('main-nav').classList.toggle('nav-open')" aria-label="Abrir menú">
+        ☰ Menú
+      </button>
+      <nav id="main-nav">
         <% if (usuarioActual) { %>
-          <span>Hola, <strong><%= usuarioActual.nombre %></strong> (<%= usuarioActual.nombre_rol %>)</span>
+          <span class="user-pill">
+            <strong><%= usuarioActual.nombre %></strong> · <%= usuarioActual.nombre_rol %>
+          </span>
           <% if (usuarioActual.nombre_rol === 'Cliente') { %>
             <a href="/catalogo">Catálogo</a>
             <a href="/carrito">Carrito (<%= carritoCantidad %>)</a>
-            <a href="/cuenta/pedidos">Mis Pedidos</a>
+            <a href="/cuenta/pedidos">Mi Cuenta y Puntos</a>
           <% } else if (usuarioActual.nombre_rol === 'Administrador') { %>
             <a href="/admin/dashboard">Panel Admin</a>
+            <a href="/admin/contraentrega">Contraentrega</a>
+            <a href="/admin/consultas">Reportes</a>
+            <a href="/catalogo">Ver Tienda</a>
           <% } else if (usuarioActual.nombre_rol === 'Proveedor') { %>
-            <a href="/proveedor/consultas">Consultas Proveedor</a>
+            <a href="/proveedor/consultas">Portal Proveedor</a>
           <% } %>
           <a href="/auth/logout" class="btn-logout">Cerrar Sesión</a>
         <% } else { %>
           <a href="/auth/login">Iniciar Sesión</a>
-          <a href="/auth/register">Registrarse</a>
+          <a href="/auth/register">Crear Cuenta</a>
         <% } %>
       </nav>
     </div>
   </header>
   <main class="container main-content">
     <% if (mensajeExito) { %>
-      <div class="alert alert-success"><%= mensajeExito %></div>
+      <div class="alert alert-success" role="alert"><%= mensajeExito %></div>
     <% } %>
     <% if (mensajeError) { %>
-      <div class="alert alert-danger"><%= mensajeError %></div>
+      <div class="alert alert-danger" role="alert"><%= mensajeError %></div>
+    <% } %>
+    <% if (mensajeAviso) { %>
+      <div class="alert alert-warning" role="alert"><%= mensajeAviso %></div>
     <% } %>

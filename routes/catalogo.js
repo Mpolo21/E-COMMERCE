@@ -6,8 +6,11 @@ const express = require('express');
 const router = express.Router();
 const CatalogoController = require('../controllers/catalogoController');
 const { requiereLogin } = require('../middlewares/auth');
+const { requiereRol } = require('../middlewares/roles');
 
-router.get('/', requiereLogin, CatalogoController.listarCatalogo);
-router.get('/producto/:id', requiereLogin, CatalogoController.verDetalle);
+router.use(requiereLogin, requiereRol(['Cliente', 'Administrador']));
+
+router.get('/', CatalogoController.listarCatalogo);
+router.get('/producto/:id', CatalogoController.verDetalle);
 
 module.exports = router;

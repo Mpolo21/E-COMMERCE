@@ -1,23 +1,18 @@
 /**
  * Archivo: models/reporteModel.js
- * Propósito: Consultas SQL específicas, conjuntas (CU02.4) y reportes financieros (CU02.8).
- * Actualizado: Compatibilidad estricta con ONLY_FULL_GROUP_BY de MySQL.
+ * Propósito: Consultas SQL específicas, conjuntas (CU02.4), reportes (CU02.8) y auditoría de puntos (Ajuste 4.7).
  */
 const { pool } = require('../config/db');
+const PuntosService = require('../services/puntosService');
 
 class ReporteModel {
-  // Catálogos auxiliares para los selectores de filtros en la vista de consultas
   static async obtenerListasFiltro() {
-    const [clientes] = await pool.query('SELECT id_usuario, nombre, correo FROM usuarios WHERE id_rol = 2 ORDER BY nombre');
+    const [clientes] = await pool.query('SELECT id_usuario, nombre, correo, puntos_fidelizacion FROM usuarios WHERE id_rol = 2 ORDER BY nombre');
     const [temporadas] = await pool.query('SELECT id_temporada, nombre_temporada FROM temporadas ORDER BY id_temporada');
     return { clientes, temporadas };
   }
 
-  // ==========================================================================
-  // CONSULTAS ESPECÍFICAS (CU02.4)
-  // ==========================================================================
-
-  // 1. Productos con stock bajo por talla y color
+  // Específica 1: Productos con stock bajo por talla y color
   static async stockBajoPorTallaColor(umbral = 3) {
     const [rows] = await pool.query(
       `SELECT p.id_producto, p.nombre_producto, m.nombre_marca, 
@@ -34,10 +29,11 @@ class ReporteModel {
     return rows;
   }
 
-  // 2. Historial de compras de un cliente específico
+  // Específica 2: Historial de compras de un cliente específico (con desglose de puntos)
   static async historialClienteEspecifico(id_cliente) {
     const [rows] = await pool.query(
-      `SELECT ped.id_pedido, ped.fecha_pedido, ped.total, ped.estado_pedido,
+      `SELECT ped.id_pedido, ped.fecha_pedido, ped.subtotal, ped.puntos_canjeados,
+              ped.descuento_puntos, ped.total, ped.puntos_ganados, ped.estado_pedido,
               mp.nombre_metodo, e.tipo_entrega, e.estado_entrega,
               GROUP_CONCAT(CONCAT(pr.nombre_producto, ' (', t.nombre_talla, '/', col.nombre_color, ' x', dp.cantidad, ')') SEPARATOR ', ') AS prendas
        FROM pedidos ped
@@ -48,14 +44,16 @@ class ReporteModel {
        JOIN tallas t ON dp.id_talla = t.id_talla
        JOIN colores col ON dp.id_color = col.id_color
        WHERE ped.id_cliente = ?
-       GROUP BY ped.id_pedido, ped.fecha_pedido, ped.total, ped.estado_pedido, mp.nombre_metodo, e.tipo_entrega, e.estado_entrega
+       GROUP BY ped.id_pedido, ped.fecha_pedido, ped.subtotal, ped.puntos_canjeados,
+                ped.descuento_puntos, ped.total, ped.puntos_ganados, ped.estado_pedido,
+                mp.nombre_metodo, e.tipo_entrega, e.estado_entrega
        ORDER BY ped.fecha_pedido DESC`,
       [id_cliente]
     );
     return rows;
   }
 
-  // 3. Productos más vendidos por temporada
+  // Específica 3: Productos más vendidos por temporada
   static async masVendidosPorTemporada() {
     const [rows] = await pool.query(
       `SELECT temp.nombre_temporada, p.id_producto, p.nombre_producto, m.nombre_marca,
@@ -73,7 +71,7 @@ class ReporteModel {
     return rows;
   }
 
-  // 4. Clientes con mayor puntaje de fidelización
+  // Específica 4: Clientes con mayor puntaje de fidelización (Saldo actual verificable)
   static async clientesMayorFidelizacion() {
     const [rows] = await pool.query(
       `SELECT u.id_usuario, u.nombre, u.correo, u.puntos_fidelizacion,
@@ -88,10 +86,11 @@ class ReporteModel {
     return rows;
   }
 
-  // 5. Pedidos pendientes de entrega
+  // Específica 5: Pedidos pendientes de entrega
   static async pedidosPendientesEntrega() {
     const [rows] = await pool.query(
       `SELECT ped.id_pedido, ped.fecha_pedido, u.nombre AS cliente, ped.direccion_entrega,
+              ped.estado_pedido, ped.total,
               e.tipo_entrega, COALESCE(tr.nombre_empresa, 'Logística Propia Urabá') AS responsable,
               e.estado_entrega, e.fecha_actualizacion
        FROM entregas e
@@ -104,11 +103,7 @@ class ReporteModel {
     return rows;
   }
 
-  // ==========================================================================
-  // CONSULTAS CONJUNTAS (CU02.4)
-  // ==========================================================================
-
-  // 1. Disponibilidad en tiempo real de un producto (inventario vs. catálogo web)
+  // Conjunta 1: Disponibilidad en tiempo real
   static async disponibilidadTiempoReal() {
     const [rows] = await pool.query(
       `SELECT p.id_producto, p.nombre_producto, c.nombre_categoria, m.nombre_marca,
@@ -130,7 +125,7 @@ class ReporteModel {
     return rows;
   }
 
-  // 2. Relación entre método de pago y zona de entrega
+  // Conjunta 2: Relación entre método de pago y zona de entrega
   static async relacionMetodoPagoZonaEntrega() {
     const [rows] = await pool.query(
       `SELECT mp.nombre_metodo, e.tipo_entrega, 
@@ -147,7 +142,7 @@ class ReporteModel {
     return rows;
   }
 
-  // 3. Productos de una temporada con total de unidades vendidas e ingreso generado
+  // Conjunta 3: Productos de una temporada con total de unidades vendidas e ingreso generado
   static async desempenoPorTemporada(id_temporada) {
     const [rows] = await pool.query(
       `SELECT temp.nombre_temporada, p.id_producto, p.nombre_producto, p.precio AS precio_actual,
@@ -165,7 +160,7 @@ class ReporteModel {
     return rows;
   }
 
-  // 4. Clientes que compraron en más de una temporada
+  // Conjunta 4: Clientes que compraron en más de una temporada
   static async clientesMultitemporada() {
     const [rows] = await pool.query(
       `SELECT u.id_usuario, u.nombre, u.correo,
@@ -185,30 +180,65 @@ class ReporteModel {
     return rows;
   }
 
-  // ==========================================================================
-  // REPORTES GERENCIALES (CU02.8)
-  // ==========================================================================
-
+  // Reporte 1: Vista oficial vista_balance_prendas
   static async obtenerBalancePrendas() {
-    const [rows] = await pool.query(`SELECT * FROM vista_balance_prendas ORDER BY balance_ganancia_perdida DESC`);
+    const [rows] = await pool.query('SELECT * FROM vista_balance_prendas ORDER BY balance_ganancia_perdida DESC');
     return rows;
   }
 
+  // Reporte 2: Ventas por período (incluye subtotal bruto, descuento por puntos e ingreso neto)
   static async obtenerVentasPorPeriodo(fechaInicio, fechaFin) {
     const [rows] = await pool.query(
-      `SELECT DATE(ped.fecha_pedido) AS fecha,
-              COUNT(DISTINCT ped.id_pedido) AS total_pedidos,
-              SUM(dp.cantidad) AS prendas_vendidas,
-              SUM(dp.cantidad * dp.precio_unitario) AS ingresos_brutos
-       FROM pedidos ped
-       JOIN detalles_pedido dp ON ped.id_pedido = dp.id_pedido
-       WHERE ped.estado_pedido != 'Cancelado'
-         AND DATE(ped.fecha_pedido) BETWEEN ? AND ?
-       GROUP BY DATE(ped.fecha_pedido)
+      `SELECT DATE(p.fecha_pedido) AS fecha,
+              COUNT(p.id_pedido) AS total_pedidos,
+              COALESCE(SUM(items.unidades), 0) AS prendas_vendidas,
+              SUM(p.subtotal) AS subtotal_bruto,
+              SUM(p.descuento_puntos) AS descuento_puntos_total,
+              SUM(p.total) AS ingresos_brutos
+       FROM pedidos p
+       JOIN (
+         SELECT id_pedido, SUM(cantidad) AS unidades
+         FROM detalles_pedido
+         GROUP BY id_pedido
+       ) items ON p.id_pedido = items.id_pedido
+       WHERE p.estado_pedido != 'Cancelado'
+         AND DATE(p.fecha_pedido) BETWEEN ? AND ?
+       GROUP BY DATE(p.fecha_pedido)
        ORDER BY fecha DESC`,
       [fechaInicio, fechaFin]
     );
     return rows;
+  }
+
+  // AJUSTE 4.7: Movimientos de puntos de un cliente y ajuste manual
+  static async obtenerClienteYMovimientos(id_usuario) {
+    const [userRows] = await pool.query(
+      'SELECT id_usuario, nombre, correo, puntos_fidelizacion FROM usuarios WHERE id_usuario = ? AND id_rol = 2',
+      [id_usuario]
+    );
+    if (userRows.length === 0) return null;
+
+    const [movimientos] = await pool.query(
+      `SELECT * FROM movimientos_puntos WHERE id_usuario = ? ORDER BY fecha DESC, id_movimiento DESC`,
+      [id_usuario]
+    );
+
+    return { cliente: userRows[0], movimientos };
+  }
+
+  static async realizarAjustePuntosAdmin(id_usuario, puntos, motivo) {
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
+      const nuevoSaldo = await PuntosService.ajusteManualAdmin(conn, id_usuario, puntos, motivo);
+      await conn.commit();
+      conn.release();
+      return nuevoSaldo;
+    } catch (error) {
+      await conn.rollback();
+      conn.release();
+      throw error;
+    }
   }
 }
 

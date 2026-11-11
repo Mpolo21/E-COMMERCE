@@ -1,0 +1,70 @@
+<%- include('../partials/header') %>
+<%- include('../partials/admin_nav') %>
+
+<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:15px; margin-bottom:20px;">
+  <div>
+    <h2 style="margin-bottom:4px;">Gestión y Auditoría de Puntos: <%= cliente.nombre %></h2>
+    <p style="margin:0; color:var(--text-secondary);">Correo: <%= cliente.correo %> · ID Cliente: #<%= cliente.id_usuario %></p>
+  </div>
+  <div class="kpi-card" style="padding:14px 22px; min-width:220px; text-align:center;">
+    <span class="kpi-label">Saldo Actual</span>
+    <div class="kpi-value" style="color:var(--accent); margin:4px 0;"><%= cliente.puntos_fidelizacion.toLocaleString('es-CO') %> pts</div>
+    <small>Equivalen a <%= formatoCOP(cliente.puntos_fidelizacion * configPuntos.valorPuntoCop) %></small>
+  </div>
+</div>
+
+<!-- Formulario para Ajuste Manual de Puntos (AJUSTE_ADMIN) -->
+<div class="card" style="margin-bottom:28px;">
+  <h3>Realizar Ajuste Manual de Puntos (AJUSTE_ADMIN)</h3>
+  <form action="/admin/puntos/ajustar" method="POST" style="display:flex; gap:15px; flex-wrap:wrap; align-items:flex-end;">
+    <input type="hidden" name="id_usuario" value="<%= cliente.id_usuario %>">
+    <div class="form-group" style="margin:0; flex:1; min-width:200px;">
+      <label for="puntos">Cantidad de Puntos (+ suma / - resta) *</label>
+      <input type="number" id="puntos" name="puntos" required placeholder="Ej: 500 o -200">
+    </div>
+    <div class="form-group" style="margin:0; flex:2; min-width:260px;">
+      <label for="motivo">Motivo Obligatorio del Ajuste *</label>
+      <input type="text" id="motivo" name="motivo" required placeholder="Ej: Bonificación por campaña o corrección de saldo">
+    </div>
+    <button type="submit" class="btn-accent" style="padding:11px 20px;">Aplicar Ajuste</button>
+    <a href="/admin/consultas" class="btn-sm" style="padding:11px 16px;">← Volver a Consultas</a>
+  </form>
+</div>
+
+<h3>Historial de Movimientos Registrados</h3>
+<div class="table-responsive">
+  <table>
+    <thead>
+      <tr>
+        <th>ID Mov.</th>
+        <th>Fecha</th>
+        <th>Tipo</th>
+        <th>Puntos</th>
+        <th>Saldo Resultante</th>
+        <th>Pedido</th>
+        <th>Descripción / Motivo</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% if (movimientos.length === 0) { %>
+        <tr><td colspan="7" style="text-align:center;">Sin movimientos registrados.</td></tr>
+      <% } else { %>
+        <% movimientos.forEach(m => { %>
+          <tr>
+            <td>#<%= m.id_movimiento %></td>
+            <td><%= new Date(m.fecha).toLocaleString('es-CO') %></td>
+            <td><span class="badge-estado <%= m.tipo.toLowerCase() %>"><%= m.tipo %></span></td>
+            <td style="font-weight:700; color:<%= m.puntos >= 0 ? 'var(--success-text)' : 'var(--danger-text)' %>;">
+              <%= m.puntos > 0 ? '+' + m.puntos.toLocaleString('es-CO') : m.puntos.toLocaleString('es-CO') %> pts
+            </td>
+            <td><strong><%= m.saldo_resultante.toLocaleString('es-CO') %> pts</strong></td>
+            <td><%= m.id_pedido ? '#' + m.id_pedido : '—' %></td>
+            <td><%= m.descripcion %></td>
+          </tr>
+        <% }) %>
+      <% } %>
+    </tbody>
+  </table>
+</div>
+
+<%- include('../partials/footer') %>

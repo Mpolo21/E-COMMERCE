@@ -10,8 +10,8 @@ const ReporteController = require('../../controllers/reporteController');
 const { requiereLogin } = require('../../middlewares/auth');
 const { requiereRol } = require('../../middlewares/roles');
 
-// Todas las rutas de este archivo requieren rol Administrador
-router.use(requiereLogin, requiereRol(['Administrador']));
+// Todas las rutas requieren rol Administrador
+router.use(requiereLogin, requiereRol('Administrador'));
 
 // Dashboard general
 router.get('/dashboard', AdminController.dashboard);
@@ -48,11 +48,18 @@ router.post('/pagos/estado', AdminController.cambiarEstadoPago);
 router.get('/entregas', CompraEntregaController.vistaEntregas);
 router.post('/entregas/actualizar', CompraEntregaController.actualizarEntrega);
 
-// Registro de compras a proveedores e Inventario
+// AJUSTE 1: Pagos Contraentrega y AJUSTE 4.5: Cancelación de pedidos
+router.get('/contraentrega', CompraEntregaController.vistaPagosContraentrega);
+router.post('/contraentrega/pagar', CompraEntregaController.confirmarPagoContraentrega);
+router.post('/pedidos/cancelar', CompraEntregaController.cancelarPedido);
+
+// Registro de compras a proveedores
 router.get('/compras', CompraEntregaController.vistaCompras);
 router.post('/compras/registrar', CompraEntregaController.registrarCompra);
 
-// CU02.4 Consultas específicas/conjuntas y CU02.8 Reportes
+// CU02.4 Consultas, CU02.8 Reportes y AJUSTE 4.7 Auditoría/Ajuste de Puntos
 router.get('/consultas', ReporteController.panelConsultasYReportes);
+router.get('/puntos/:id', ReporteController.verMovimientosCliente);
+router.post('/puntos/ajustar', ReporteController.ajustarPuntosCliente);
 
 module.exports = router;

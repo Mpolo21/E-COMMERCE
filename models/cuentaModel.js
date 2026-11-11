@@ -1,6 +1,6 @@
 /**
  * Archivo: models/cuentaModel.js
- * Propósito: Consultas SQL para el perfil del cliente, historial de pedidos y estado de entregas (CU01.3).
+ * Propósito: Consultas SQL para el perfil del cliente, movimientos de puntos e historial de pedidos (CU01.3 y Ajuste 4.6).
  */
 const { pool } = require('../config/db');
 
@@ -18,8 +18,12 @@ class CuentaModel {
     const [rows] = await pool.query(
       `SELECT 
          p.id_pedido, 
-         p.fecha_pedido, 
-         p.total, 
+         p.fecha_pedido,
+         p.subtotal,
+         p.puntos_canjeados,
+         p.descuento_puntos,
+         p.total,
+         p.puntos_ganados,
          p.estado_pedido, 
          p.direccion_entrega,
          mp.nombre_metodo AS metodo_pago,
@@ -37,8 +41,18 @@ class CuentaModel {
     return rows;
   }
 
+  static async obtenerMovimientosPuntos(id_usuario) {
+    const [rows] = await pool.query(
+      `SELECT id_movimiento, id_pedido, tipo, puntos, saldo_resultante, descripcion, fecha
+       FROM movimientos_puntos
+       WHERE id_usuario = ?
+       ORDER BY fecha DESC, id_movimiento DESC`,
+      [id_usuario]
+    );
+    return rows;
+  }
+
   static async obtenerDetallePedidoPorId(id_pedido, id_cliente) {
-    // Validar que el pedido pertenezca al cliente logueado (seguridad por rol/propietario)
     const [pedidos] = await pool.query(
       `SELECT p.*, mp.nombre_metodo, e.tipo_entrega, e.estado_entrega, t_emp.nombre_empresa AS transportadora
        FROM pedidos p

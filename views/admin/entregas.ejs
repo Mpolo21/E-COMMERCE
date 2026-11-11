@@ -2,65 +2,77 @@
 <%- include('../partials/admin_nav') %>
 
 <h2>CU02.3 - Gestión de Despachos y Entregas</h2>
-<div style="background:#fff; padding:20px; border-radius:8px; margin-top:20px;">
-  <div style="overflow-x:auto;">
-    <table style="width:100%; border-collapse:collapse;">
-      <thead>
-        <tr style="background:#1e293b; color:#fff; text-align:left;">
-          <th style="padding:10px;">ID Entrega</th>
-          <th style="padding:10px;">Pedido y Cliente</th>
-          <th style="padding:10px;">Dirección de Envío</th>
-          <th style="padding:10px;">Logística (Tipo)</th>
-          <th style="padding:10px;">Transportadora Externa</th>
-          <th style="padding:10px;">Estado de Entrega</th>
-          <th style="padding:10px;">Acción</th>
+<p style="color:var(--text-secondary);">
+  Los pedidos con modalidad <strong>Pago Contraentrega</strong> pueden despacharse aunque su estado de pago sea <em>Debiendo</em>; el recaudo se realiza al momento de entregar la mercancía y luego se confirma en la pestaña <a href="/admin/contraentrega">Pagos Contraentrega</a>.
+</p>
+
+<div class="table-responsive" style="margin-top:18px;">
+  <table>
+    <thead>
+      <tr>
+        <th>Entrega</th>
+        <th>Pedido y Cliente</th>
+        <th>Pago y Monto a Cobrar</th>
+        <th>Dirección de Envío</th>
+        <th>Logística (Tipo)</th>
+        <th>Transportadora Externa</th>
+        <th>Estado de Entrega</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% entregas.forEach(e => { %>
+        <tr>
+          <form action="/admin/entregas/actualizar" method="POST">
+            <td>
+              <strong>#<%= e.id_entrega %></strong>
+              <input type="hidden" name="id_entrega" value="<%= e.id_entrega %>">
+            </td>
+            <td>
+              <strong>Pedido #<%= e.id_pedido %></strong><br>
+              <small><%= e.cliente_nombre %></small>
+            </td>
+            <td>
+              <span class="badge-estado <%= e.estado_pedido.toLowerCase() %>"><%= e.estado_pedido %></span><br>
+              <small><%= e.nombre_metodo %></small><br>
+              <% if (e.estado_pedido === 'Debiendo') { %>
+                <strong style="color:var(--warning-text); font-size:0.82rem;">Cobrar al entregar: <%= formatoCOP(e.total) %></strong>
+              <% } else { %>
+                <small style="color:var(--success-text);">Total: <%= formatoCOP(e.total) %></small>
+              <% } %>
+            </td>
+            <td><small><%= e.direccion_entrega %></small></td>
+            <td>
+              <select name="tipo_entrega" style="padding:6px;">
+                <option value="Propia" <%= e.tipo_entrega === 'Propia' ? 'selected' : '' %>>Logística Propia (Urabá)</option>
+                <option value="Transportadora Externa" <%= e.tipo_entrega === 'Transportadora Externa' ? 'selected' : '' %>>Transportadora Externa</option>
+              </select>
+            </td>
+            <td>
+              <select name="id_transportadora" style="padding:6px;">
+                <option value="">-- Ninguna (Propia) --</option>
+                <% transportadoras.forEach(t => { %>
+                  <option value="<%= t.id_transportadora %>" <%= e.id_transportadora === t.id_transportadora ? 'selected' : '' %>>
+                    <%= t.nombre_empresa %>
+                  </option>
+                <% }) %>
+              </select>
+            </td>
+            <td>
+              <select name="estado_entrega" style="padding:6px;">
+                <option value="En preparación" <%= e.estado_entrega === 'En preparación' ? 'selected' : '' %>>En preparación</option>
+                <option value="Despachado" <%= e.estado_entrega === 'Despachado' ? 'selected' : '' %>>Despachado</option>
+                <option value="Entregado" <%= e.estado_entrega === 'Entregado' ? 'selected' : '' %>>Entregado</option>
+              </select>
+            </td>
+            <td>
+              <button type="submit" class="btn-sm" style="background:var(--bg-dark); color:#fff;">Guardar</button>
+            </td>
+          </form>
         </tr>
-      </thead>
-      <tbody>
-        <% entregas.forEach(e => { %>
-          <tr style="border-bottom:1px solid #e2e8f0; background:<%= e.estado_entrega === 'Entregado' ? '#f0fdf4' : 'transparent' %>">
-            <form action="/admin/entregas/actualizar" method="POST">
-              <td style="padding:10px; font-weight:bold;">
-                #<%= e.id_entrega %>
-                <input type="hidden" name="id_entrega" value="<%= e.id_entrega %>">
-              </td>
-              <td style="padding:10px;">
-                Pedido #<%= e.id_pedido %><br>
-                <small><%= e.cliente_nombre %></small>
-              </td>
-              <td style="padding:10px;"><small><%= e.direccion_entrega %></small></td>
-              <td style="padding:10px;">
-                <select name="tipo_entrega" style="padding:5px;">
-                  <option value="Propia" <%= e.tipo_entrega === 'Propia' ? 'selected' : '' %>>Logística Propia (Urabá)</option>
-                  <option value="Transportadora Externa" <%= e.tipo_entrega === 'Transportadora Externa' ? 'selected' : '' %>>Transportadora Externa</option>
-                </select>
-              </td>
-              <td style="padding:10px;">
-                <select name="id_transportadora" style="padding:5px;">
-                  <option value="">-- Ninguna (Propia) --</option>
-                  <% transportadoras.forEach(t => { %>
-                    <option value="<%= t.id_transportadora %>" <%= e.id_transportadora === t.id_transportadora ? 'selected' : '' %>>
-                      <%= t.nombre_empresa %>
-                    </option>
-                  <% }) %>
-                </select>
-              </td>
-              <td style="padding:10px;">
-                <select name="estado_entrega" style="padding:5px;">
-                  <option value="En preparación" <%= e.estado_entrega === 'En preparación' ? 'selected' : '' %>>En preparación</option>
-                  <option value="Despachado" <%= e.estado_entrega === 'Despachado' ? 'selected' : '' %>>Despachado / En tránsito</option>
-                  <option value="Entregado" <%= e.estado_entrega === 'Entregado' ? 'selected' : '' %>>Entregado al cliente</option>
-                </select>
-              </td>
-              <td style="padding:10px;">
-                <button type="submit" class="btn-sm" style="background:#2563eb; color:#fff;">Actualizar</button>
-              </td>
-            </form>
-          </tr>
-        <% }) %>
-      </tbody>
-    </table>
-  </div>
+      <% }) %>
+    </tbody>
+  </table>
 </div>
 
 <%- include('../partials/footer') %>

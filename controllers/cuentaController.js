@@ -1,20 +1,28 @@
 /**
  * Archivo: controllers/cuentaController.js
- * Propósito: Controlar la visualización del historial de pedidos y cuenta del cliente (CU01.3).
+ * Propósito: Controlar la visualización del historial de pedidos, puntos y movimientos del cliente (CU01.3 y Ajuste 4.6).
  */
 const CuentaModel = require('../models/cuentaModel');
+const { configPuntos } = require('../config/puntos');
 
 class CuentaController {
   static async verHistorialPedidos(req, res) {
     try {
       const id_cliente = req.session.usuario.id_usuario;
-      const cliente = await CuentaModel.obtenerDatosCliente(id_cliente);
-      const pedidos = await CuentaModel.obtenerHistorialPedidos(id_cliente);
+      const [cliente, pedidos, movimientos] = await Promise.all([
+        CuentaModel.obtenerDatosCliente(id_cliente),
+        CuentaModel.obtenerHistorialPedidos(id_cliente),
+        CuentaModel.obtenerMovimientosPuntos(id_cliente)
+      ]);
+
+      const equivalenciaPesos = (Number(cliente.puntos_fidelizacion) || 0) * configPuntos.valorPuntoCop;
 
       res.render('cliente/historial_pedidos', {
-        titulo: 'Mi Cuenta y Pedidos - PIJIC',
+        titulo: 'Mi Cuenta y Puntos - PIJIC Menswear',
         cliente,
-        pedidos
+        pedidos,
+        movimientos,
+        equivalenciaPesos
       });
     } catch (error) {
       console.error('Error al ver historial de pedidos:', error);
@@ -34,7 +42,7 @@ class CuentaController {
       }
 
       res.render('cliente/detalle_pedido', {
-        titulo: `Detalle Pedido #${pedido.id_pedido} - PIJIC`,
+        titulo: `Detalle Pedido #${pedido.id_pedido} - PIJIC Menswear`,
         pedido
       });
     } catch (error) {

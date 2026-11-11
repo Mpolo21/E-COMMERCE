@@ -129,34 +129,52 @@
   </table>
 
   <h3>Específica 2: Historial de Compras del Cliente Seleccionado</h3>
-  <table style="width:100%; border-collapse:collapse; margin-bottom:25px;">
-    <thead>
-      <tr style="background:#1e293b; color:#fff; text-align:left;">
-        <th style="padding:8px;">Pedido</th>
-        <th style="padding:8px;">Fecha</th>
-        <th style="padding:8px;">Prendas Adquiridas</th>
-        <th style="padding:8px;">Método Pago</th>
-        <th style="padding:8px;">Entrega</th>
-        <th style="padding:8px;">Total</th>
-      </tr>
-    </thead>
-    <tbody>
-      <% if (esp2_historialCliente.length === 0) { %>
-        <tr><td colspan="6" style="padding:10px;">El cliente seleccionado no registra compras.</td></tr>
-      <% } else { %>
-        <% esp2_historialCliente.forEach(h => { %>
-          <tr style="border-bottom:1px solid #e2e8f0;">
-            <td style="padding:8px;">#<%= h.id_pedido %></td>
-            <td style="padding:8px;"><%= new Date(h.fecha_pedido).toLocaleDateString() %></td>
-            <td style="padding:8px;"><small><%= h.prendas %></small></td>
-            <td style="padding:8px;"><%= h.nombre_metodo %></td>
-            <td style="padding:8px;"><%= h.estado_entrega %> (<%= h.tipo_entrega %>)</td>
-            <td style="padding:8px; font-weight:bold;">$ <%= Number(h.total).toLocaleString('es-CO') %></td>
-          </tr>
-        <% }) %>
-      <% } %>
-    </tbody>
-  </table>
+  <div class="table-responsive" style="margin-bottom:25px;">
+    <table>
+      <thead>
+        <tr>
+          <th>Pedido</th>
+          <th>Fecha</th>
+          <th>Prendas</th>
+          <th>Subtotal</th>
+          <th>Descuento Puntos</th>
+          <th>Total Neto</th>
+          <th>Estado Pago</th>
+          <th>Entrega</th>
+          <th>Acción</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (esp2_historialCliente.length === 0) { %>
+          <tr><td colspan="9">El cliente seleccionado no registra compras.</td></tr>
+        <% } else { %>
+          <% esp2_historialCliente.forEach(h => { %>
+            <tr>
+              <td><strong>#<%= h.id_pedido %></strong></td>
+              <td><%= new Date(h.fecha_pedido).toLocaleDateString('es-CO') %></td>
+              <td><small><%= h.prendas %></small></td>
+              <td><%= formatoCOP(h.subtotal) %></td>
+              <td style="color:var(--success-text);">- <%= formatoCOP(h.descuento_puntos) %> (<%= h.puntos_canjeados %> pts)</td>
+              <td><strong><%= formatoCOP(h.total) %></strong></td>
+              <td><span class="badge-estado <%= h.estado_pedido.toLowerCase() %>"><%= h.estado_pedido %></span></td>
+              <td><%= h.estado_entrega %> (<%= h.tipo_entrega %>)</td>
+              <td>
+                <% if (h.estado_pedido !== 'Cancelado') { %>
+                  <form action="/admin/pedidos/cancelar" method="POST" onsubmit="return confirm('¿Cancelar Pedido #<%= h.id_pedido %>? Se devolverán los puntos canjeados y se revertirán los ganados.');">
+                    <input type="hidden" name="id_pedido" value="<%= h.id_pedido %>">
+                    <input type="hidden" name="origen" value="/admin/consultas?id_cliente=<%= filtros.idCliente %>">
+                    <button type="submit" class="btn-danger-sm">Cancelar</button>
+                  </form>
+                <% } else { %>
+                  <small>Cancelado</small>
+                <% } %>
+              </td>
+            </tr>
+          <% }) %>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
 
   <h3>Específica 3: Productos Más Vendidos por Temporada</h3>
   <table style="width:100%; border-collapse:collapse; margin-bottom:25px;">
@@ -183,28 +201,36 @@
   </table>
 
   <h3>Específica 4: Clientes con Mayor Puntaje de Fidelización</h3>
-  <table style="width:100%; border-collapse:collapse; margin-bottom:25px;">
-    <thead>
-      <tr style="background:#1e293b; color:#fff; text-align:left;">
-        <th style="padding:8px;">Cliente</th>
-        <th style="padding:8px;">Correo</th>
-        <th style="padding:8px;">Puntos Acumulados</th>
-        <th style="padding:8px;">Pedidos Pagados</th>
-        <th style="padding:8px;">Total Comprado</th>
-      </tr>
-    </thead>
-    <tbody>
-      <% esp4_clientesFidelizacion.forEach(c => { %>
-        <tr style="border-bottom:1px solid #e2e8f0;">
-          <td style="padding:8px;"><strong><%= c.nombre %></strong></td>
-          <td style="padding:8px;"><%= c.correo %></td>
-          <td style="padding:8px; font-weight:bold; color:#15803d;"><%= c.puntos_fidelizacion %> pts</td>
-          <td style="padding:8px;"><%= c.total_pedidos %></td>
-          <td style="padding:8px;">$ <%= Number(c.total_gastado).toLocaleString('es-CO') %></td>
+  <div class="table-responsive" style="margin-bottom:25px;">
+    <table>
+      <thead>
+        <tr>
+          <th>Cliente</th>
+          <th>Correo</th>
+          <th>Saldo Actual Puntos</th>
+          <th>Equivalencia COP</th>
+          <th>Pedidos Pagados</th>
+          <th>Total Gastado</th>
+          <th>Auditoría de Puntos</th>
         </tr>
-      <% }) %>
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+        <% esp4_clientesFidelizacion.forEach(c => { %>
+          <tr>
+            <td><strong><%= c.nombre %></strong></td>
+            <td><%= c.correo %></td>
+            <td style="font-weight:700; color:var(--accent);"><%= c.puntos_fidelizacion.toLocaleString('es-CO') %> pts</td>
+            <td style="color:var(--success-text);"><%= formatoCOP(c.puntos_fidelizacion * configPuntos.valorPuntoCop) %></td>
+            <td><%= c.total_pedidos %></td>
+            <td><%= formatoCOP(c.total_gastado) %></td>
+            <td>
+              <a href="/admin/puntos/<%= c.id_usuario %>" class="btn-sm">Ver Movimientos / Ajustar</a>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
 
   <h3>Específica 5: Pedidos Pendientes de Entrega</h3>
   <table style="width:100%; border-collapse:collapse;">
