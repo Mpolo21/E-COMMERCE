@@ -1,88 +1,93 @@
 /**
  * Archivo: models/productoModel.js
- * Propósito: Consultas SQL para el catálogo de productos, filtros y stock en tiempo real.
+ * Propósito: Consultas SQL para el catálogo público del cliente (solo prendas activas) y detalle de producto.
  */
 const { pool } = require('../config/db');
 
 class ProductoModel {
-  static async obtenerFiltrosCatalogo() {
-    const [categorias] = await pool.query('SELECT * FROM categorias ORDER BY nombre_categoria');
-    const [marcas] = await pool.query('SELECT * FROM marcas WHERE estado = TRUE ORDER BY nombre_marca');
-    const [tallas] = await pool.query('SELECT * FROM tallas ORDER BY id_talla');
-    const [colores] = await pool.query('SELECT * FROM colores ORDER BY nombre_color');
+  static async obtenerFiltrosDisponibles() {
+    const [categorias] = await pool.query('SELECT id_categoria, nombre_categoria FROM categorias ORDER BY nombre_categoria');
+    const [marcas] = await pool.query('SELECT id_marca, nombre_marca FROM marcas WHERE estado = TRUE ORDER BY nombre_marca');
+    const [tallas] = await pool.query('SELECT id_talla, nombre_talla FROM tallas ORDER BY id_talla');
+    const [colores] = await pool.query('SELECT id_color, nombre_color FROM colores ORDER BY nombre_color');
+
     return { categorias, marcas, tallas, colores };
   }
 
-  static async obtenerCatalogoFiltrado({ categoria, marca, talla, color }) {
-    let query = `
-      SELECT DISTINCT 
-        p.id_producto, 
-        p.nombre_producto, 
-        p.descripcion, 
-        p.precio, 
-        p.prioridad_visual,
-        c.nombre_categoria, 
-        m.nombre_marca, 
-        t_temp.nombre_temporada,
-        COALESCE(SUM(i.cantidad_stock), 0) AS stock_total
-      FROM productos p
-      JOIN categorias c ON p.id_categoria = c.id_categoria
-      JOIN marcas m ON p.id_marca = m.id_marca
-      JOIN temporadas t_temp ON p.id_temporada = t_temp.id_temporada
-      LEFT JOIN inventario i ON p.id_producto = i.id_producto
-      WHERE p.estado = TRUE
-    `;
-
+  static async obtenerCatalogo({ categoria, marca, talla, color } = {}) {
+    const whereClauses = ['p.estado = TRUE'];
     const params = [];
 
     if (categoria) {
-      query += ` AND p.id_categoria = ?`;
+      whereClauses.push('p.id_categoria = ?');
       params.push(categoria);
     }
     if (marca) {
-      query += ` AND p.id_marca = ?`;
+      whereClauses.push('p.id_marca = ?');
       params.push(marca);
     }
     if (talla) {
-      query += ` AND i.id_talla = ?`;
+      whereClauses.push('i.id_talla = ?');
       params.push(talla);
     }
     if (color) {
-      query += ` AND i.id_color = ?`;
+      whereClauses.push('i.id_color = ?');
       params.push(color);
     }
 
-    query += ` GROUP BY p.id_producto ORDER BY p.prioridad_visual DESC, p.nombre_producto ASC`;
+    const whereSQL = `WHERE ${whereClauses.join(' AND ')}`;
 
-    const [productos] = await pool.query(query, params);
-    return productos;
+    // Consulta que consolida el stock sumando todas las tallas/colores de cada prenda
+    const sql = `
+      SELECT p.id_producto, p.nombre_producto, p.precio, p.prioridad_visual,
+             c.nombre_categoria, m.nombre_marca, temp.nombre_temporada,
+             COALESCE(SUM(i.cantidad_stock), 0) AS stock_total
+      FROM productos p
+      JOIN categorias c ON p.id_categoria = c.id_categoria
+      JOIN marcas m ON p.id_marca = m.id_marca
+      JOIN temporadas temp ON p.id_temporada = temp.id_temporada
+      LEFT JOIN inventario i ON p.id_producto = i.id_producto
+      ${whereSQL}
+      GROUP BY p.id_producto, p.nombre_producto, p.precio, p.prioridad_visual,
+               c.nombre_categoria, m.nombre_marca, temp.nombre_temporada
+      ORDER BY p.prioridad_visual DESC, p.id_producto DESC
+    `;
+
+    const [rows] = await pool.query(sql, params);
+    return rows;
   }
 
   static async obtenerDetalleProducto(id_producto) {
     const [productos] = await pool.query(
-      `SELECT p.*, c.nombre_categoria, m.nombre_marca, t_temp.nombre_temporada 
+      `SELECT p.id_producto, p.nombre_producto, p.descripcion, p.precio, p.estado,
+              c.nombre_categoria, m.nombre_marca, temp.nombre_temporada
        FROM productos p
        JOIN categorias c ON p.id_categoria = c.id_categoria
        JOIN marcas m ON p.id_marca = m.id_marca
-       JOIN temporadas t_temp ON p.id_temporada = t_temp.id_temporada
-       WHERE p.id_producto = ? AND p.estado = TRUE`,
+       JOIN temporadas temp ON p.id_temporada = temp.id_temporada
+       WHERE p.id_producto = ?`,
       [id_producto]
     );
 
-    if (productos.length === 0) return null;
+    if (productos.length === 0 || !productos[0].estado) {
+      return null; // Retorna null si no existe o fue dado de baja (estado = 0)
+    }
+
     const producto = productos[0];
 
-    // Obtener inventario detallado por talla y color para el selector de compra
     const [inventario] = await pool.query(
-      `SELECT i.id_inventario, i.id_talla, t.nombre_talla, i.id_color, col.nombre_color, i.cantidad_stock
+      `SELECT i.id_inventario, i.cantidad_stock, t.nombre_talla, col.nombre_color
        FROM inventario i
        JOIN tallas t ON i.id_talla = t.id_talla
        JOIN colores col ON i.id_color = col.id_color
-       WHERE i.id_producto = ? AND i.cantidad_stock > 0`,
+       WHERE i.id_producto = ? AND i.cantidad_stock > 0
+       ORDER BY t.id_talla ASC, col.nombre_color ASC`,
       [id_producto]
     );
 
-    producto.inventario = inventario;
+    producto.variantes = inventario;
+    producto.stock_total = inventario.reduce((acc, curr) => acc + Number(curr.cantidad_stock), 0);
+
     return producto;
   }
 }
