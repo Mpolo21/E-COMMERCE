@@ -4,7 +4,6 @@
 <h2>CU02.1 - Gestión de Inventario Estacional y Catálogo</h2>
 
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 25px; margin-top: 20px;">
-  <!-- Formulario 1: Crear Nuevo Producto -->
   <div class="card">
     <h3>1. Registrar Nueva Prenda</h3>
     <form action="/admin/inventario/producto/crear" method="POST">
@@ -66,7 +65,6 @@
     </form>
   </div>
 
-  <!-- Formulario 2: Asignar Stock por Talla/Color y Crear Atributos -->
   <div style="display:flex; flex-direction:column; gap:20px;">
     <div class="card">
       <h3>2. Asignar / Ajustar Stock por Talla y Color</h3>
@@ -127,7 +125,6 @@
   </div>
 </div>
 
-<!-- Barra de Filtros y Búsqueda de Inventario (Actualización 2.3) -->
 <div class="card" style="margin-top: 32px; margin-bottom: 18px;">
   <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:14px;">
     <h3 style="margin:0;">Listado de Productos en Inventario (<%= paginacion.totalRegistros %> registros)</h3>
@@ -166,7 +163,6 @@
   </form>
 </div>
 
-<!-- Tabla de Productos -->
 <div class="table-responsive">
   <table>
     <thead>
@@ -237,7 +233,7 @@
               <div style="display:flex; gap:6px; flex-wrap:wrap;">
                 <% if (p.estado) { %>
                   <button type="button" class="btn-danger-sm"
-                    onclick="abrirModalBaja(<%= p.id_producto %>, <%- JSON.stringify(p.nombre_producto) %>, <%= p.stock_total %>, <%= p.pedidos_pendientes_entrega %>)">
+                    onclick='abrirModalBaja(<%= p.id_producto %>, <%- JSON.stringify(p.nombre_producto) %>, <%= p.stock_total %>, <%= p.pedidos_pendientes_entrega %>)'>
                     Dar de baja
                   </button>
                 <% } else { %>
@@ -255,7 +251,7 @@
 
                 <% if (Number(p.total_movimientos_historicos) === 0) { %>
                   <button type="button" class="btn-danger-sm" style="background:#7f1d1d; color:#fff;"
-                    onclick="abrirModalEliminar(<%= p.id_producto %>, <%- JSON.stringify(p.nombre_producto) %>, <%= p.stock_total %>)">
+                    onclick='abrirModalEliminar(<%= p.id_producto %>, <%- JSON.stringify(p.nombre_producto) %>, <%= p.stock_total %>)'>
                     Eliminar definitivo
                   </button>
                 <% } %>
@@ -268,7 +264,6 @@
   </table>
 </div>
 
-<!-- Controles de Paginación -->
 <% if (paginacion.totalPaginas > 1) { %>
   <div style="display:flex; justify-content:space-between; align-items:center; margin-top:18px; flex-wrap:wrap; gap:10px;">
     <span style="font-size:0.9rem; color:var(--text-secondary);">
@@ -285,13 +280,12 @@
   </div>
 <% } %>
 
-<!-- MODAL 1: Confirmación para Dar de Baja -->
 <div id="modal-baja" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:999; align-items:center; justify-content:center; padding:15px;">
   <div class="card" style="max-width:500px; width:100%;">
     <h3 style="margin-top:0;">Confirmar Baja de Producto</h3>
     <p id="baja-resumen" style="color:var(--text-secondary);"></p>
     <div class="alert alert-warning" style="font-size:0.86rem;">
-      <strong>¿Qué ocurrirá?</strong> El producto dejará de mostrarse inmediatamente en el catálogo del cliente y no podrá comprarse. Su stock actual y todo su historial de ventas/compras se conservarán intactos. Los pedidos en curso seguirán su proceso normal.
+      <strong>¿Qué ocurrirá?</strong> El producto dejará de mostrarse en el catálogo del cliente y se eliminará todo su stock físico actual de la tabla de inventario. Su historial de ventas y compras se conservará.
     </div>
     <form action="/admin/inventario/producto/baja" method="POST">
       <input type="hidden" name="id_producto" id="baja-id-producto">
@@ -305,13 +299,12 @@
       </div>
       <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:15px;">
         <button type="button" class="btn-sm" onclick="cerrarModales()">Cancelar</button>
-        <button type="submit" class="btn-danger-sm" style="padding:9px 16px;">Confirmar Baja Lógica</button>
+        <button type="submit" class="btn-danger-sm" style="padding:9px 16px;">Confirmar Baja y Eliminar Stock</button>
       </div>
     </form>
   </div>
 </div>
 
-<!-- MODAL 2: Doble Confirmación para Eliminar Definitivamente (Solo sin historial) -->
 <div id="modal-eliminar" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:999; align-items:center; justify-content:center; padding:15px;">
   <div class="card" style="max-width:500px; width:100%; border-top:4px solid #dc2626;">
     <h3 style="margin-top:0; color:#991b1b;">Eliminar Producto Definitivamente</h3>
@@ -342,7 +335,7 @@
     document.getElementById('baja-id-producto').value = id;
     document.getElementById('baja-resumen').innerHTML =
       'Prenda: <strong>#' + id + ' - ' + nombre + '</strong><br>' +
-      'Stock físico actual: <strong>' + stock + ' unidades</strong><br>' +
+      'Stock físico a descartar: <strong>' + stock + ' unidades</strong><br>' +
       'Pedidos pendientes de entrega que la incluyen: <strong>' + pendientes + ' pedido(s)</strong>';
     document.getElementById('modal-baja').style.display = 'flex';
   }

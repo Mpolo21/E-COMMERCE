@@ -43,7 +43,6 @@ class AdminModel {
 
     const whereSQL = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
 
-    // Total de productos para la paginación
     const [countRows] = await pool.query(
       `SELECT COUNT(*) AS total
        FROM productos p
@@ -55,7 +54,6 @@ class AdminModel {
     const totalRegistros = countRows[0].total;
     const totalPaginas = Math.max(1, Math.ceil(totalRegistros / limite));
 
-    // Consulta paginada con conteo de stock, historial (pedidos + compras) y entregas pendientes
     const [productos] = await pool.query(
       `SELECT p.*, c.nombre_categoria, m.nombre_marca, t.nombre_temporada, pr.nombre_proveedor,
               COALESCE(inv.stock_total, 0) AS stock_total,
@@ -97,7 +95,6 @@ class AdminModel {
       [...params, Number(limite), Number(offset)]
     );
 
-    // Lista ligera de productos activos para el selector de asignación rápida de stock
     const [productosSelectorStock] = await pool.query(
       'SELECT id_producto, nombre_producto, estado FROM productos WHERE estado = TRUE ORDER BY nombre_producto ASC'
     );
@@ -146,27 +143,46 @@ class AdminModel {
     );
   }
 
-  // Actualización 2.1.1: Dar de baja (baja lógica conservando stock e historial)
+  // Actualización 2.1.1: Dar de baja lógica Y limpiar stock transaccionalmente
   static async darDeBajaProducto(id_producto, motivo_baja) {
-    const [rows] = await pool.query('SELECT id_producto, nombre_producto, estado FROM productos WHERE id_producto = ?', [id_producto]);
-    if (rows.length === 0) {
-      throw new Error('El producto especificado no existe.');
-    }
-    if (!rows[0].estado) {
-      throw new Error(`El producto "${rows[0].nombre_producto}" ya se encuentra dado de baja.`);
-    }
+    const connection = await pool.getConnection();
+    try {
+      await connection.beginTransaction();
 
-    const motivoLimpio = motivo_baja && motivo_baja.trim() ? motivo_baja.trim() : 'Dado de baja por el administrador';
-    await pool.query(
-      `UPDATE productos 
-       SET estado = FALSE, fecha_baja = NOW(), motivo_baja = ?
-       WHERE id_producto = ?`,
-      [motivoLimpio, id_producto]
-    );
-    return rows[0].nombre_producto;
+      const [rows] = await connection.query(
+        'SELECT id_producto, nombre_producto, estado FROM productos WHERE id_producto = ? FOR UPDATE', 
+        [id_producto]
+      );
+      
+      if (rows.length === 0) {
+        throw new Error('El producto especificado no existe.');
+      }
+      if (!rows[0].estado) {
+        throw new Error(`El producto "${rows[0].nombre_producto}" ya se encuentra dado de baja.`);
+      }
+
+      const motivoLimpio = motivo_baja && motivo_baja.trim() ? motivo_baja.trim() : 'Dado de baja por el administrador';
+      
+      await connection.query(
+        `UPDATE productos 
+         SET estado = FALSE, fecha_baja = NOW(), motivo_baja = ?
+         WHERE id_producto = ?`,
+        [motivoLimpio, id_producto]
+      );
+
+      await connection.query('DELETE FROM inventario WHERE id_producto = ?', [id_producto]);
+
+      await connection.commit();
+      connection.release();
+      
+      return rows[0].nombre_producto;
+    } catch (error) {
+      await connection.rollback();
+      connection.release();
+      throw error;
+    }
   }
 
-  // Actualización 2.3: Reactivar producto dado de baja (limpia fecha_baja y motivo_baja)
   static async reactivarProducto(id_producto) {
     const [rows] = await pool.query('SELECT id_producto, nombre_producto, estado FROM productos WHERE id_producto = ?', [id_producto]);
     if (rows.length === 0) {
@@ -182,7 +198,6 @@ class AdminModel {
     return rows[0].nombre_producto;
   }
 
-  // Actualización 2.1.2: Eliminar definitivamente (SOLO si no tiene historial en detalles_pedido ni detalles_compra)
   static async eliminarProductoDefinitivamente(id_producto) {
     const connection = await pool.getConnection();
     try {
@@ -212,10 +227,7 @@ class AdminModel {
         );
       }
 
-      // 1. Borrar sus filas de inventario
       await connection.query('DELETE FROM inventario WHERE id_producto = ?', [id_producto]);
-
-      // 2. Borrar el producto
       await connection.query('DELETE FROM productos WHERE id_producto = ?', [id_producto]);
 
       await connection.commit();
@@ -249,9 +261,6 @@ class AdminModel {
     }
   }
 
-  // ==========================================
-  // CU02.5 GESTIÓN DE MARCAS
-  // ==========================================
   static async listarMarcas() {
     const [rows] = await pool.query('SELECT * FROM marcas ORDER BY id_marca ASC');
     return rows;
@@ -269,9 +278,6 @@ class AdminModel {
     ]);
   }
 
-  // ==========================================
-  // CU02.7 GESTIÓN DE PROVEEDORES
-  // ==========================================
   static async listarProveedoresConProductos() {
     const [proveedores] = await pool.query('SELECT * FROM proveedores ORDER BY id_proveedor ASC');
     const [productos] = await pool.query(
@@ -294,9 +300,6 @@ class AdminModel {
     );
   }
 
-  // ==========================================
-  // CU02.6 GESTIÓN DE TRANSPORTADORAS
-  // ==========================================
   static async listarTransportadoras() {
     const [rows] = await pool.query('SELECT * FROM transportadoras ORDER BY id_transportadora ASC');
     return rows;
@@ -320,9 +323,6 @@ class AdminModel {
     await pool.query('DELETE FROM transportadoras WHERE id_transportadora = ?', [id_transportadora]);
   }
 
-  // ==========================================
-  // CU02.2 CONFIGURACIÓN DE MÉTODOS DE PAGO
-  // ==========================================
   static async listarMetodosPago() {
     const [rows] = await pool.query('SELECT * FROM metodos_pago ORDER BY id_metodo ASC');
     return rows;
