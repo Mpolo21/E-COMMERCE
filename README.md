@@ -1,5 +1,5 @@
 # Sistema Web de E-commerce de Ropa Masculina
-# polo
+
 Proyecto académico desarrollado para la asignatura **Diseño de Software** — **Politécnico Jaime Isaza Cadavid (Sede Apartadó)**.
 
 ## 1. Descripción del Sistema
